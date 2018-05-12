@@ -13,6 +13,12 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
 
     # TODO: Support multi-headed models
 
+    # Summary for debugging
+    with tf.variable_scope('denormalize_image'):
+        image = tf.add(tf.multiply(0.5, features), 0.5)
+    tf.summary.image('input_image', image)
+    tf.summary.histogram('features', features)
+
     model = model_builder(params.model)
     net = model(features, mode, params)
 
@@ -28,27 +34,23 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
             })
 
     with tf.variable_scope('metrics'):
-        loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=net['logits'], name='xentropy')
-        total_loss = tf.add(loss, tf.losses.get_regularization_loss(), name='total_loss')
+        prediction = net['predictions']
 
-        accuracy = tf.metrics.accuracy(labels=labels, predictions=net['predictions'], name='accuracy')
-        precision = tf.metrics.precision(labels=labels, predictions=net['predictions'], name='precision')
-        recall = tf.metrics.recall(labels=labels, predictions=net['predictions'], name='recall')
+        xentropy = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=net['logits'])
+        loss = tf.add(xentropy, tf.losses.get_regularization_loss(), name='total_loss')
+
+        # For area under curve metrics we need the raw predictions.
         auc = tf.metrics.auc(labels=labels, predictions=net['predictions'], name='auc')
 
-    total_loss = tf.identity(total_loss, name='loss')
-    learning_rate = tf.constant(params.learning_rate, dtype=tf.float32, name='learning_rate')
+        # Accuracy, precision and recall metrics are meant for single-class classification.
+        # They expect a value that can be converted to bool. Here, we cutoff at a specific threshold.
+        label_hot = tf.cast(labels, dtype=tf.bool)
+        prediction_hot = tf.greater_equal(prediction, 0.5)
+        accuracy = tf.metrics.accuracy(labels=label_hot, predictions=prediction_hot, name='accuracy')
+        precision = tf.metrics.precision(labels=label_hot, predictions=prediction_hot, name='precision')
+        recall = tf.metrics.recall(labels=label_hot, predictions=prediction_hot, name='recall')
 
-    with tf.variable_scope('optimization'):
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-        train_op = optimizer.minimize(total_loss, tf.train.get_or_create_global_step())
-
-    if mode == tf.estimator.ModeKeys.TRAIN:
-        return tf.estimator.EstimatorSpec(mode=mode,
-                                          predictions=None,
-                                          loss=loss,
-                                          train_op=train_op,
-                                          training_hooks=[])
+    loss = tf.identity(loss, name='loss')
 
     if mode == tf.estimator.ModeKeys.EVAL:
         return tf.estimator.EstimatorSpec(mode=mode,
@@ -60,5 +62,17 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
                                               'recall': recall,
                                               'auc': auc
                                           })
+
+    learning_rate = tf.constant(params.learning_rate, dtype=tf.float32, name='learning_rate')
+
+    with tf.variable_scope('optimization'):
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        train_op = optimizer.minimize(loss, tf.train.get_or_create_global_step())
+
+    if mode == tf.estimator.ModeKeys.TRAIN:
+        return tf.estimator.EstimatorSpec(mode=mode,
+                                          predictions=None,
+                                          loss=loss,
+                                          train_op=train_op)
 
     assert False, 'An unknown mode was specified: {}'.format(mode)

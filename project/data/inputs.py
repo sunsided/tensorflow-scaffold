@@ -50,8 +50,8 @@ def get_images(data_dir: str) -> Tuple[str, float]:
             assert len(negative) == 0
             break
 
-        yield positive.pop(), 1.
-        yield negative.pop(), 0.
+        yield os.path.abspath(positive.pop()), 1
+        yield os.path.abspath(negative.pop()), 0
 
 
 def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_size: Tuple[int, int]=(224, 224)) -> Tuple[tf.Tensor, tf.Tensor]:
@@ -61,6 +61,7 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
     :param image_file: The file to decode.
     :param augment: Is set, images are augmented by random cropping.
     :param image_size: The image size to resize the images to.
+    :param label: The labels to pass through.
     :return: A tuple of the decoded image, the orientation and quality.
     """
 
@@ -100,13 +101,13 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
         # We need to get the image to a known size.
         images = tf.expand_dims(image, axis=0, name='expand_image_dims')
         images = tf.image.resize_images(images, size=image_size, method=tf.image.ResizeMethod.BICUBIC)  # TODO: Do in batch?
-        image = tf.squeeze(images, axis=0, name='squeeze_image_dims')
+
+        # Note: tf.squeeze implicitly converts to tf.float32. For convert_to_image_type we
+        # expect uint8 as otherwise the values won't be scaled.
+        image = tf.cast(tf.squeeze(images, axis=0, name='squeeze_image_dims'), dtype=tf.uint8)
 
         # Convert to floating-point.
         image = tf.image.convert_image_dtype(image, dtype=tf.float32, name='convert_image_dtype')
-
-        # Summary for debugging
-        tf.summary.image('input_image', image)
 
         # We perform global mean and variance normalization.
         image = tf.subtract(image, .5, name='mean_normalize')  # TODO: Obtain channel-correct means
@@ -120,18 +121,20 @@ def input_fn(flags: Namespace, is_training: bool):
 
     data_dir = os.path.join(flags.data_dir, 'train' if is_training else 'test')
     dataset = tf.data.Dataset().from_generator(lambda: get_images(data_dir),
-                                               output_types=(tf.string, tf.float32),
+                                               output_types=(tf.string, tf.int32),
                                                output_shapes=(None, None))
 
     dataset = dataset.map(lambda x, y: read_image(x, y, augment=True), flags.num_parallel_calls)  # TODO: Support data_format (channels_first, ...), extract image_size
-    dataset = dataset.prefetch(100)  # TODO: Extract magic number
+    dataset = dataset.prefetch(1000)  # TODO: Extract magic number
     dataset = dataset.batch(flags.batch_size)
+    dataset = dataset.prefetch(100)   # TODO: Extract magic number
 
     dataset = dataset.repeat(flags.epochs_between_evals)
 
     # TODO: Add random rotation and flipping
 
     if tf.test.is_built_with_cuda():
+        print('Prefetching to GPU ...')
         prefetch_op = tf.contrib.data.prefetch_to_device(device="/gpu:0")
         dataset = dataset.apply(prefetch_op)
 
