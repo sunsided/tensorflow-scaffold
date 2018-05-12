@@ -33,6 +33,8 @@ def get_images(data_dir: str) -> Tuple[str, float]:
     """
     positive = glob.glob(os.path.join(data_dir, 'hot_dog', '*.jpg'))
     negative = glob.glob(os.path.join(data_dir, 'not_hot_dog', '*.jpg'))
+    assert len(positive) > 0
+    assert len(negative) > 0
 
     # Get the maximum number of items over all classes
     max_items = max(len(positive), len(negative))
@@ -62,10 +64,13 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
     :return: A tuple of the decoded image, the orientation and quality.
     """
 
+    with tf.variable_scope('load_file'):
+        jpeg_bytes = tf.read_file(image_file, name='read_jpeg')
+
     if augment:
         with tf.variable_scope('read_image_cropped'):
             # Extract image shape from raw JPEG image buffer.
-            image_shape = tf.image.extract_jpeg_shape(image_file)
+            image_shape = tf.image.extract_jpeg_shape(jpeg_bytes)
 
             # Get a crop window with distorted bounding box.
             full_image = tf.constant([[0, 0, 1., 1.]], dtype=tf.float32, shape=[1, 1, 4])
@@ -80,15 +85,15 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
             offset_y, offset_x, _ = tf.unstack(bbox_begin)
             target_height, target_width, _ = tf.unstack(bbox_size)
             crop_window = tf.stack([offset_y, offset_x, target_height, target_width])
-            image = tf.image.decode_and_crop_jpeg(image_file, crop_window, channels=3,
+            image = tf.image.decode_and_crop_jpeg(jpeg_bytes, crop_window, channels=3,
                                                   try_recover_truncated=True, acceptable_fraction=.8,
                                                   name='decode_image')
     else:
         with tf.variable_scope('read_image'):
             # NOTE: decode_image not return the image's shape, however decode_jpeg also decodes PNG files.
             #       https://github.com/tensorflow/tensorflow/issues/9356
-            image = tf.image.decode_jpeg(image_file, channels=3,
-                                         try_recover_truncated=False, acceptable_fraction=.8,
+            image = tf.image.decode_jpeg(jpeg_bytes, channels=3,
+                                         try_recover_truncated=True, acceptable_fraction=.8,
                                          name='decode_image')
 
     with tf.variable_scope('resize_and_normalize'):
@@ -116,7 +121,7 @@ def input_fn(flags: Namespace, is_training: bool):
     data_dir = os.path.join(flags.data_dir, 'train' if is_training else 'test')
     dataset = tf.data.Dataset().from_generator(lambda: get_images(data_dir),
                                                output_types=(tf.string, tf.float32),
-                                               output_shapes=(None, 1))
+                                               output_shapes=(None, None))
 
     dataset = dataset.map(lambda x, y: read_image(x, y, augment=True), flags.num_parallel_calls)  # TODO: Support data_format (channels_first, ...), extract image_size
     dataset = dataset.prefetch(100)  # TODO: Extract magic number

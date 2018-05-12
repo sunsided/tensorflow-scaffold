@@ -1,5 +1,7 @@
+from argparse import Namespace
 from collections import OrderedDict
-from typing import Optional
+from typing import Optional, Callable
+import tensorflow as tf
 from project.models.my_model import my_model
 
 
@@ -8,7 +10,7 @@ MODELS = OrderedDict([
 ])
 
 
-def model_builder(model_name: Optional[str]):
+def model_builder(model_name: Optional[str]) -> Callable[[tf.Tensor, str, Namespace], tf.Tensor]:
     lower_model_name = model_name.lower() if model_name is not None else 'latest'
     if lower_model_name == 'latest':
         lower_model_name = next(reversed(MODELS))

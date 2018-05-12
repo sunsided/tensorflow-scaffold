@@ -87,10 +87,16 @@ class ProjectArgParser(argparse.ArgumentParser):
             metavar='<MTS>'
         )
 
+        self.add_argument(
+            '--learning_rate', '-lr', type=float, default=1e-4,
+            help='[default: %(default)s] The learning rate.',
+            metavar='<LR>'
+        )
+
         self.set_defaults(
             data_dir='dataset',
             validate=False,
-            model_dir='model',
+            model_dir='out',
             train_epochs=1000,
             epochs_between_evals=1,
             batch_size=100,

@@ -1,5 +1,7 @@
 *.pyc
 __pycache__/
+out/
+model/
 
 # User-specific stuff
 .idea/**/workspace.xml
