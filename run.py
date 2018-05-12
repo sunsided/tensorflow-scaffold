@@ -3,10 +3,10 @@ import random
 import tensorflow as tf
 import numpy as np
 
-from .hooks import ExamplesPerSecondHook
-from .parameters import ProjectArgParser
-from ..project.data.inputs import input_fn
-from ..project.estimator import model_fn
+from experiments.hooks import ExamplesPerSecondHook
+from experiments.parameters import ProjectArgParser
+from project.data.inputs import input_fn
+from project.estimator import model_fn
 
 
 def main(flags: argparse.Namespace):
