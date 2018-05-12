@@ -1,0 +1,1 @@
+from .ExamplesPerSecondHook import ExamplesPerSecondHook

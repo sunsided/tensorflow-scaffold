@@ -10,7 +10,7 @@ def model_fn(features, labels, mode, params):
       An EstimatorSpec object.
     """
 
-    model = model_builder(params.model[])
+    model_fn = model_builder(params.model)
 
     # define loss, training ops, predictions, metrics and hooks
 
