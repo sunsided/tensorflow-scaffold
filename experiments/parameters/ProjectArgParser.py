@@ -88,8 +88,7 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.set_defaults(
-            # data_dir=os.path.join('dataset', 'train'),
-            # validation_dir=os.path.join('dataset', 'eval'),
+            data_dir='dataset',
             validate=False,
             model_dir='model',
             train_epochs=1000,
