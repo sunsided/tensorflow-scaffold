@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="47b1b9e6-f333-4d88-8cdf-899b1b41f7a0" name="buero (/home/mmayer)" url="http://localhost">
+        <fileTransfer host="dev.everybag.de" port="2261" rootFolder="/home/mmayer" accessType="SFTP">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" />
+          </advancedOptions>
+          <option name="port" value="2261" />
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
