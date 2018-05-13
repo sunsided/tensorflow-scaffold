@@ -7,6 +7,11 @@ from .visualization import put_kernels_on_grid
 
 def simple_model(features: tf.Tensor, mode: str, params: Namespace) -> Dict[str, tf.Tensor]:
     """ Base model definitions """
+    with tf.variable_scope('input_normalization'):
+        # We perform global mean and variance normalization.
+        features = tf.subtract(features, .5, name='mean_normalize')  # TODO: Obtain channel-correct means
+        features = tf.multiply(features, 2., name='variance_normalize')
+
     with tf.variable_scope('model'):
         net = tf.layers.conv2d(features, filters=32, kernel_size=7, strides=5, padding='valid',
                                data_format='channels_last',
@@ -82,7 +87,6 @@ def simple_model(features: tf.Tensor, mode: str, params: Namespace) -> Dict[str,
 
         grid = tf.get_default_graph().get_tensor_by_name('model/conv_7/kernel:0')
         tf.summary.histogram('conv7/weights', grid)
-
 
     return {
         'logits': logits,

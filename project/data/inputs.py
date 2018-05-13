@@ -109,10 +109,6 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
         # Convert to floating-point.
         image = tf.image.convert_image_dtype(image, dtype=tf.float32, name='convert_image_dtype')
 
-        # We perform global mean and variance normalization.
-        image = tf.subtract(image, .5, name='mean_normalize')  # TODO: Obtain channel-correct means
-        image = tf.multiply(image, 2., name='variance_normalize')
-
     return image, label
 
 
