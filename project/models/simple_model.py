@@ -5,7 +5,7 @@ import tensorflow as tf
 from .visualization import put_kernels_on_grid
 
 
-def my_model(features: tf.Tensor, mode: str, params: Namespace) -> Dict[str, tf.Tensor]:
+def simple_model(features: tf.Tensor, mode: str, params: Namespace) -> Dict[str, tf.Tensor]:
     """ Base model definitions """
     with tf.variable_scope('model'):
         net = tf.layers.conv2d(features, filters=32, kernel_size=7, strides=5, padding='valid',
