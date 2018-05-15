@@ -14,9 +14,7 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
     # TODO: Support multi-headed models
 
     # Summary for debugging
-    with tf.variable_scope('denormalize_image'):
-        image = tf.add(tf.multiply(0.5, features), 0.5)
-    tf.summary.image('input_image', image)
+    tf.summary.image('input_image', features)
     tf.summary.histogram('features', features)
 
     model = model_builder(params.model)
@@ -50,6 +48,7 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
         precision = tf.metrics.precision(labels=label_hot, predictions=prediction_hot, name='precision')
         recall = tf.metrics.recall(labels=label_hot, predictions=prediction_hot, name='recall')
 
+    xentropy = tf.identity(xentropy, name='xentropy')
     loss = tf.identity(loss, name='loss')
 
     if mode == tf.estimator.ModeKeys.EVAL:

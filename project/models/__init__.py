@@ -2,11 +2,13 @@ from argparse import Namespace
 from collections import OrderedDict
 from typing import Optional, Callable
 import tensorflow as tf
-from project.models.my_model import my_model
+from .simple_model import simple_model
+from .hub_model import hub_model
 
 
 MODELS = OrderedDict([
-    ('my_model', my_model)
+    ('simple_model', simple_model),
+    ('hub_model', hub_model)
 ])
 
 

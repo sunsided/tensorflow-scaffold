@@ -46,7 +46,7 @@ def main(flags: argparse.Namespace):
 
     if not flags.validate:
         # The tensors to log during training
-        tensors_to_log = ['learning_rate', 'loss']
+        tensors_to_log = ['learning_rate', 'loss', 'xentropy']
 
         # Set up hook that outputs training logs every 100 steps.
         # TODO: Add profiler hooks support
