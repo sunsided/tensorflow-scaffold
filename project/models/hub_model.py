@@ -41,7 +41,7 @@ def hub_model(features: tf.Tensor, mode: str, params: Namespace) -> Dict[str, tf
             net = tf.layers.dropout(net, rate=0.7, name='dropout', training=is_training)
 
             # TODO: Hyperparameter: Regularizers
-            regularizers = tf.contrib.layers.l2_regularizer(scale=1e-6)
+            regularizers = tf.contrib.layers.l2_regularizer(scale=1e-5)
 
             # To stay 2D convolutional, we need to re-add the missing dimensions.
             net = tf.reshape(net, shape=(-1, 1, 1, net.shape[1].value), name='reshape')
