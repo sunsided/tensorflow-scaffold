@@ -22,8 +22,8 @@ In order to improve processing speed later on, the image files are
 converted to `TFRecord` format first. For this, run
 
 ```bash
-python convert_dataset.py --dataset_dir dataset/train --tfrecord_filename train --tfrecord_dir dataset/train
-python convert_dataset.py --dataset_dir dataset/test --tfrecord_filename test --tfrecord_dir dataset/test
+python convert_dataset.py --dataset_dir dataset/train --tfrecord_filename train --tfrecord_dir dataset/train --max_edge 384
+python convert_dataset.py --dataset_dir dataset/test --tfrecord_filename test --tfrecord_dir dataset/test --max_edge 384
 ```
 
 This example stores image data as JPEG encoded raw bytes and decodes

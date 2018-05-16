@@ -55,8 +55,8 @@ def get_images(data_dir: str) -> Tuple[str, float]:
         yield os.path.abspath(negative.pop()), 0
 
 
-def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_size: Tuple[int, int]=(224, 224),
-               data_is_path: bool=False) -> Tuple[tf.Tensor, tf.Tensor]:
+def read_image(image_data: tf.Tensor, augment: bool, image_size: Tuple[int, int]=(224, 224),
+               data_is_path: bool=False) -> tf.Tensor:
     """
     Decodes images from file contents, random flips, resizes and normalizes them.
 
@@ -64,8 +64,7 @@ def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
     :param data_is_path: If set, the data is treated as a path to an image file. If unset, data is considered raw bytes.
     :param augment: Is set, images are augmented by random cropping.
     :param image_size: The image size to resize the images to.
-    :param label: The labels to pass through.
-    :return: A tuple of the decoded image, the orientation and quality.
+    :return: The decoded image.
     """
 
     if data_is_path:
@@ -79,6 +78,7 @@ def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
             # Get a crop window with distorted bounding box.
             full_image = tf.constant([[0, 0, 1., 1.]], dtype=tf.float32, shape=[1, 1, 4])
             sample_distorted_bounding_box = tf.image.sample_distorted_bounding_box(image_shape,
+                                                                                   max_attempts=10,
                                                                                    bounding_boxes=full_image,
                                                                                    use_image_if_no_bounding_boxes=True,
                                                                                    aspect_ratio_range=[.5, 1.5],
@@ -100,6 +100,10 @@ def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
                                          try_recover_truncated=True, acceptable_fraction=.8,
                                          name='decode_image')
 
+    with tf.variable_scope('convert_image'):
+        # Convert to floating-point.
+        image = tf.image.convert_image_dtype(image, dtype=tf.float32, name='convert_image_dtype')
+
     with tf.variable_scope('resize_and_normalize'):
         # We need to get the image to a known size.
         images = tf.expand_dims(image, axis=0, name='expand_image_dims')
@@ -107,15 +111,34 @@ def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
 
         # Note: tf.squeeze implicitly converts to tf.float32. For convert_to_image_type we
         # expect uint8 as otherwise the values won't be scaled.
-        image = tf.cast(tf.squeeze(images, axis=0, name='squeeze_image_dims'), dtype=tf.uint8)
+        image = tf.squeeze(images, axis=0, name='squeeze_image_dims')
 
-        # Convert to floating-point.
-        image = tf.image.convert_image_dtype(image, dtype=tf.float32, name='convert_image_dtype')
-
-    return image, label
+    return image
 
 
-def parse_tfrecords(ex: tf.train.Example):
+def augment_image(image: tf.Tensor, fast_mode: bool=True) -> tf.Tensor:
+    """
+    Augments an image randomly.
+
+    :param image: The image.
+    :param fast_mode: When set, not all color distortions are being used.
+    :return: The augmented image.
+    """
+    with tf.variable_scope('distort_colors'):
+        image = tf.image.random_flip_left_right(image)
+        # image = tf.image.random_flip_up_down(image)
+        image = tf.image.random_saturation(image, lower=.5, upper=1.5)
+        image = tf.image.random_brightness(image, max_delta=0.125)
+
+        # These operations apparently are slower.
+        if not fast_mode:
+            image = tf.image.random_hue(image, max_delta=0.2)
+            image = tf.image.random_contrast(image, lower=0.5, upper=1.5)
+
+    return image
+
+
+def parse_tfexample(ex: tf.train.Example):
     # This function parses a TFRecord file for Examples. In order to use
     # SequenceExamples, see https://www.tensorflow.org/api_docs/python/tf/parse_single_sequence_example
     # In order to decode a raw byte sequence, see https://www.tensorflow.org/api_docs/python/tf/decode_raw
@@ -133,6 +156,8 @@ def parse_tfrecords(ex: tf.train.Example):
 def input_fn(flags: Namespace, is_training: bool):
     """Load data here and return features and labels tensors."""
 
+    # TODO: Add support for flags.use_synthetic_data
+
     data_prefix = 'train' if is_training else 'test'
     data_dir = os.path.join(flags.data_dir, data_prefix)
 
@@ -140,23 +165,55 @@ def input_fn(flags: Namespace, is_training: bool):
     #                                            output_types=(tf.string, tf.int32),
     #                                            output_shapes=(None, None))
 
-    tfrecords = glob.glob(os.path.join(data_dir, '*.tfrecord'))
-    dataset = tf.data.TFRecordDataset(tfrecords)
-    dataset = dataset.map(parse_tfrecords, num_parallel_calls=flags.num_parallel_calls)
+    # https://www.tensorflow.org/api_docs/python/tf/contrib/data/parallel_interleave
+    # https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset
+    file_pattern = os.path.join(data_dir, '*.tfrecord')
 
-    dataset = dataset.map(lambda x, y: read_image(x, y, augment=True), flags.num_parallel_calls)  # TODO: Support data_format (channels_first, ...), extract image_size
-    dataset = dataset.prefetch(1000)  # TODO: Extract magic number
-    dataset = dataset.batch(flags.batch_size)
-    dataset = dataset.prefetch(100)   # TODO: Extract magic number
+    if flags.parallel_interleave_sources > 1:
+        tfrecords = tf.data.Dataset.list_files(file_pattern)
+        tfrecords = tfrecords.cache()
+        dataset = tfrecords.apply(
+            tf.contrib.data.parallel_interleave(
+                lambda filename: tf.data.TFRecordDataset(filename, num_parallel_reads=max(1, flags.num_parallel_reads)),
+                cycle_length=flags.num_parallel_calls))
+    else:
+        dataset = tf.data.TFRecordDataset(filenames=glob.glob(file_pattern),
+                                          num_parallel_reads=max(1, flags.num_parallel_reads))
 
-    dataset = dataset.repeat(flags.epochs_between_evals)
+    def decode_example(example: tf.train.Example) -> Tuple[tf.Tensor, tf.Tensor]:
+        feature, label = parse_tfexample(example)
+        feature = read_image(feature, augment=is_training)
+        return feature, label
 
-    # TODO: Add random rotation and flipping
+    dataset = dataset.map(decode_example, num_parallel_calls=max(1, flags.num_parallel_calls))
 
-    if tf.test.is_built_with_cuda():
-        print('Prefetching to GPU ...')
-        prefetch_op = tf.contrib.data.prefetch_to_device(device="/gpu:0")
-        dataset = dataset.apply(prefetch_op)
+    if flags.prefetch_examples > 0:
+        dataset = dataset.prefetch(flags.prefetch_examples)
+
+    # Fused shuffle / repeat.
+    dataset = dataset.apply(
+        tf.contrib.data.shuffle_and_repeat(
+            buffer_size=flags.batch_size,
+            count=flags.epochs_between_evals))
+
+    def map_data(feature: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        feature = augment_image(feature, fast_mode=True)
+        return feature, label
+
+    dataset = dataset.apply(
+        tf.contrib.data.map_and_batch(
+            map_func=map_data,
+            batch_size=flags.batch_size,
+            num_parallel_batches=max(1, flags.num_parallel_batches),
+            drop_remainder=False))
+
+    if flags.prefetch_batches >= 1:
+        dataset = dataset.prefetch(flags.prefetch_batches)
+
+    if flags.prefetch_to_device:
+        print(f'Prefetching to {flags.prefetch_to_device} ...')
+        dataset = dataset.apply(
+            tf.contrib.data.prefetch_to_device(device=flags.prefetch_to_device))
 
     iterator = dataset.make_one_shot_iterator()
     features, labels = iterator.get_next()

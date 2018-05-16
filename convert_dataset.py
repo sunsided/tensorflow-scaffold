@@ -16,7 +16,7 @@ flags.DEFINE_string('tfrecord_filename', None, 'The output file to create.')
 flags.DEFINE_string('tfrecord_dir', '.', 'The output directory to use.')
 flags.DEFINE_integer('num_shards', 2, 'Number of shards to split the TFRecord files into')
 flags.DEFINE_integer('random_seed', None, 'Random seed to use for repeatability.')
-flags.DEFINE_integer('max_edge', 512, 'The maximum edge length for an image.')
+flags.DEFINE_integer('max_edge', 384, 'The maximum edge length for an image.')
 
 FLAGS = flags.FLAGS
 

@@ -1,4 +1,5 @@
 import argparse
+import multiprocessing
 import tempfile
 from .tf_official import BaseParser, ImageModelParser, ExportParser, PerformanceParser
 
@@ -93,13 +94,54 @@ class ProjectArgParser(argparse.ArgumentParser):
             metavar='<LR>'
         )
 
+        self.add_argument(
+            '--parallel_interleave_sources', '-pis', type=int, default=1,
+            help='[default: %(default)s] The number of input sources that are '
+                 'parsed in parallel and interleaved.',
+            metavar='<PIS>'
+        )
+
+        self.add_argument(
+            '--num_parallel_reads', '-npr', type=int, default=1,
+            help='[default: %(default)s] The number of input sources that are '
+                 'read in parallel.',
+            metavar='<NPR>'
+        )
+
+        self.add_argument(
+            '--prefetch_examples', '-pre', type=int, default=0,
+            help='[default: %(default)s] The number of examples to prefetch.',
+            metavar='<PRE>'
+        )
+
+        self.add_argument(
+            '--prefetch_batches', '-pb', type=int, default=100,
+            help='[default: %(default)s] The number of batches to prefetch.',
+            metavar='<PRB>'
+        )
+
+        self.add_argument(
+            '--num_parallel_batches', '-npb', type=int, default=8,
+            help='[default: %(default)s] The number of batches to prepare in parallel.',
+            metavar='<NPB>'
+        )
+
+        self.add_argument(
+            '--prefetch_to_device', '-ptd', type=str, default=None,
+            help='[default: %(default)s] The device to prefetch to, e.g. \'/gpu:0\'.',
+            metavar='<DEVICE>'
+        )
+
         self.set_defaults(
             data_dir='dataset',
             validate=False,
             model_dir='out',
             train_epochs=1000,
+            inter_op_parallelism_threads=multiprocessing.cpu_count(),
+            intra_op_parallelism_threads=multiprocessing.cpu_count(),
+            num_parallel_calls=multiprocessing.cpu_count(),
             epochs_between_evals=1,
-            batch_size=100,
+            batch_size=256,
             train_batch_size=None,   # default to global batch_size
             validation_batch_size=None  # default to global batch_size
         )

@@ -19,6 +19,11 @@ def main(flags: argparse.Namespace):
         np.random.seed(flags.random_seed)
         tf.set_random_seed(flags.random_seed)
 
+    # Configure CPU prefetching
+    num_gpu = flags.num_gpu if 'num_gpu' in flags else (1 if tf.test.gpu_device_name() else 0)
+    if (flags.prefetch_to_device is None) and (num_gpu == 1):
+        flags.prefetch_to_device = tf.test.gpu_device_name()
+
     # TODO: Serialize model parameters into configuration file (check e.g. tf.contrib.training.HParams)
 
     # Session configuration
@@ -48,11 +53,12 @@ def main(flags: argparse.Namespace):
         # The tensors to log during training
         tensors_to_log = ['learning_rate', 'loss', 'xentropy']
 
-        # Set up hook that outputs training logs every 100 steps.
+        # Set up hook that outputs training logs every N steps.
         # TODO: Add profiler hooks support
+        report_every_n_iter = 1000
         train_hooks = [
-            tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=100),
-            ExamplesPerSecondHook(batch_size=flags.train_batch_size, every_n_steps=100)
+            tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=report_every_n_iter),
+            ExamplesPerSecondHook(batch_size=flags.train_batch_size, every_n_steps=report_every_n_iter)
         ]
 
         train_steps = flags.max_train_steps if flags.max_train_steps is not None and flags.max_train_steps >= 0 else None
