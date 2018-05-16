@@ -7,7 +7,7 @@ from typing import Tuple, List
 import tensorflow as tf
 
 
-def resample_class(items: List[str], n: int) -> List[str]:
+def _resample_class(items: List[str], n: int) -> List[str]:
     """
     Resamples the items in the list to have exactly N items.
     :param items: The items to resample.
@@ -25,6 +25,7 @@ def resample_class(items: List[str], n: int) -> List[str]:
         return items + extra
 
 
+# The following function is meant to be used with Dataset.from_generator()
 def get_images(data_dir: str) -> Tuple[str, float]:
     """
     Uniformly samples images from the dataset directories.
@@ -40,8 +41,8 @@ def get_images(data_dir: str) -> Tuple[str, float]:
     max_items = max(len(positive), len(negative))
 
     # Resample the data to have the same number of items.
-    positive = resample_class(positive, max_items)
-    negative = resample_class(negative, max_items)
+    positive = _resample_class(positive, max_items)
+    negative = _resample_class(negative, max_items)
 
     # We're assuming there are much more images in the regular_images list
     # than in the others, which is why we are iterating over that one.
@@ -54,24 +55,26 @@ def get_images(data_dir: str) -> Tuple[str, float]:
         yield os.path.abspath(negative.pop()), 0
 
 
-def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_size: Tuple[int, int]=(224, 224)) -> Tuple[tf.Tensor, tf.Tensor]:
+def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_size: Tuple[int, int]=(224, 224),
+               data_is_path: bool=False) -> Tuple[tf.Tensor, tf.Tensor]:
     """
     Decodes images from file contents, random flips, resizes and normalizes them.
 
-    :param image_file: The file to decode.
+    :param image_data: The JPEG bytes to decode.
+    :param data_is_path: If set, the data is treated as a path to an image file. If unset, data is considered raw bytes.
     :param augment: Is set, images are augmented by random cropping.
     :param image_size: The image size to resize the images to.
     :param label: The labels to pass through.
     :return: A tuple of the decoded image, the orientation and quality.
     """
 
-    with tf.variable_scope('load_file'):
-        jpeg_bytes = tf.read_file(image_file, name='read_jpeg')
+    if data_is_path:
+        image_data = tf.gfile.FastGFile(image_data, 'rb').read()
 
     if augment:
         with tf.variable_scope('read_image_cropped'):
             # Extract image shape from raw JPEG image buffer.
-            image_shape = tf.image.extract_jpeg_shape(jpeg_bytes)
+            image_shape = tf.image.extract_jpeg_shape(image_data)
 
             # Get a crop window with distorted bounding box.
             full_image = tf.constant([[0, 0, 1., 1.]], dtype=tf.float32, shape=[1, 1, 4])
@@ -86,14 +89,14 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
             offset_y, offset_x, _ = tf.unstack(bbox_begin)
             target_height, target_width, _ = tf.unstack(bbox_size)
             crop_window = tf.stack([offset_y, offset_x, target_height, target_width])
-            image = tf.image.decode_and_crop_jpeg(jpeg_bytes, crop_window, channels=3,
+            image = tf.image.decode_and_crop_jpeg(image_data, crop_window, channels=3,
                                                   try_recover_truncated=True, acceptable_fraction=.8,
                                                   name='decode_image')
     else:
         with tf.variable_scope('read_image'):
             # NOTE: decode_image not return the image's shape, however decode_jpeg also decodes PNG files.
             #       https://github.com/tensorflow/tensorflow/issues/9356
-            image = tf.image.decode_jpeg(jpeg_bytes, channels=3,
+            image = tf.image.decode_jpeg(image_data, channels=3,
                                          try_recover_truncated=True, acceptable_fraction=.8,
                                          name='decode_image')
 
@@ -112,13 +115,33 @@ def read_image(image_file: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
     return image, label
 
 
+def parse_tfrecords(ex: tf.train.Example):
+    # This function parses a TFRecord file for Examples. In order to use
+    # SequenceExamples, see https://www.tensorflow.org/api_docs/python/tf/parse_single_sequence_example
+    features = {
+        'image/class/label': tf.FixedLenFeature([], dtype=tf.int64),
+        'image/encoded': tf.FixedLenFeature([], dtype=tf.string),
+        # 'image/format': tf.FixedLenFeature([], dtype=tf.string),
+        # 'image/height': tf.FixedLenFeature([], dtype=tf.int64),
+        # 'image/width': tf.FixedLenFeature([], dtype=tf.int64),
+    }
+    parsed = tf.parse_single_example(ex, features)
+    return parsed['image/encoded'], parsed['image/class/label']
+
+
 def input_fn(flags: Namespace, is_training: bool):
     """Load data here and return features and labels tensors."""
 
-    data_dir = os.path.join(flags.data_dir, 'train' if is_training else 'test')
-    dataset = tf.data.Dataset().from_generator(lambda: get_images(data_dir),
-                                               output_types=(tf.string, tf.int32),
-                                               output_shapes=(None, None))
+    data_prefix = 'train' if is_training else 'test'
+    data_dir = os.path.join(flags.data_dir, data_prefix)
+
+    # dataset = tf.data.Dataset().from_generator(lambda: get_images(data_dir),
+    #                                            output_types=(tf.string, tf.int32),
+    #                                            output_shapes=(None, None))
+
+    tfrecords = glob.glob(os.path.join(data_dir, '*.tfrecord'))
+    dataset = tf.data.TFRecordDataset(tfrecords)
+    dataset = dataset.map(parse_tfrecords, num_parallel_calls=flags.num_parallel_calls)
 
     dataset = dataset.map(lambda x, y: read_image(x, y, augment=True), flags.num_parallel_calls)  # TODO: Support data_format (channels_first, ...), extract image_size
     dataset = dataset.prefetch(1000)  # TODO: Extract magic number
