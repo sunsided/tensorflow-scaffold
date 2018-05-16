@@ -118,6 +118,7 @@ def read_image(image_data: tf.Tensor, label: tf.Tensor, augment: bool, image_siz
 def parse_tfrecords(ex: tf.train.Example):
     # This function parses a TFRecord file for Examples. In order to use
     # SequenceExamples, see https://www.tensorflow.org/api_docs/python/tf/parse_single_sequence_example
+    # In order to decode a raw byte sequence, see https://www.tensorflow.org/api_docs/python/tf/decode_raw
     features = {
         'image/class/label': tf.FixedLenFeature([], dtype=tf.int64),
         'image/encoded': tf.FixedLenFeature([], dtype=tf.string),
