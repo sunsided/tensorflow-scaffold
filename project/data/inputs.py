@@ -174,7 +174,8 @@ def input_fn(flags: Namespace, is_training: bool):
         tfrecords = tfrecords.cache()
         dataset = tfrecords.apply(
             tf.contrib.data.parallel_interleave(
-                lambda filename: tf.data.TFRecordDataset(filename, num_parallel_reads=max(1, flags.num_parallel_reads)),
+                map_func=tf.data.TFRecordDataset,
+                sloppy=True,
                 cycle_length=flags.num_parallel_calls))
     else:
         dataset = tf.data.TFRecordDataset(filenames=glob.glob(file_pattern),
