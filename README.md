@@ -5,6 +5,8 @@ TensorFlow projects.
 
 Inspirations and sources:
 
+- [Importing Data](https://www.tensorflow.org/programmers_guide/datasets)
+- [Input Pipeline Performance Guide](https://www.tensorflow.org/versions/master/performance/datasets_performance    )
 - [Preparing a large-scale image dataset with TensorFlow's TFRecord files](https://kwotsin.github.io/tech/2017/01/29/tfrecords.html)
 - [Getting Text into Tensorflow with the Dataset API](https://medium.com/@TalPerry/getting-text-into-tensorflow-with-the-dataset-api-ffb832c8bec6)
 - [How to write into and read from a TFRecords file in TensorFlow](http://www.machinelearninguru.com/deep_learning/tensorflow/basics/tfrecord/tfrecord.html)
