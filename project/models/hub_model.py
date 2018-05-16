@@ -11,16 +11,17 @@ def hub_model(features: tf.Tensor, mode: str, params: Namespace) -> Dict[str, tf
     # Hub image models are expected to pass their input as 0..1 (i.e. unnormalized).
     # See https://www.tensorflow.org/hub/common_signatures/images for more information.
 
-    with tf.variable_scope('model'):
-        # Note that even though we specify 'train' during training, the variables are not automatically
-        # added to the global trainable variables (see tf.trainable_variables() unless trainable
-        # is set to True.
-        # See https://github.com/tensorflow/hub/blob/master/docs/fine_tuning.md
-        module_tags = {'train'} if is_training else None
-        # https://www.tensorflow.org/hub/modules/google/imagenet/mobilenet_v2_035_224/feature_vector/1
-        module = hub.Module('https://tfhub.dev/google/imagenet/mobilenet_v2_035_224/feature_vector/1',
-                            name='module', tags=module_tags, trainable=False)
+    # Note that even though we specify 'train' during training, the variables are not automatically
+    # added to the global trainable variables (see tf.trainable_variables() unless trainable
+    # is set to True.
+    # See https://github.com/tensorflow/hub/blob/master/docs/fine_tuning.md
+    module_tags = {'train'} if is_training else None
 
+    # https://www.tensorflow.org/hub/modules/google/imagenet/mobilenet_v2_035_224/feature_vector/1
+    module = hub.Module('https://tfhub.dev/google/imagenet/mobilenet_v2_035_224/feature_vector/1',
+                        name='module', tags=module_tags, trainable=False)
+
+    with tf.variable_scope('model'):
         # We require a specific input image size for this.
         height, width = hub.get_expected_image_size(module)
         assert (height == 224) and (width == 224), 'Module image dimension mismatch.'
