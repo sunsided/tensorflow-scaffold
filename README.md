@@ -16,14 +16,34 @@ Inspirations and sources:
 - `experiments`: experiment scripts
 - `configs`: experiments configuration files
 
+## Run training
+
+In order to run a training session, try
+
+```bash
+python run.py \
+    --xla \
+    --epochs_between_evals 1000 \
+    --train_epochs 10000 \
+    --learning_rate 0.0001 
+```
+
 ## Prepare the dataset
 
 In order to improve processing speed later on, the image files are
 converted to `TFRecord` format first. For this, run
 
 ```bash
-python convert_dataset.py --dataset_dir dataset/train --tfrecord_filename train --tfrecord_dir dataset/train --max_edge 384
-python convert_dataset.py --dataset_dir dataset/test --tfrecord_filename test --tfrecord_dir dataset/test --max_edge 384
+python convert_dataset.py \
+    --dataset_dir dataset/train \
+    --tfrecord_filename train \
+    --tfrecord_dir dataset/train \
+    --max_edge 384
+python convert_dataset.py \
+    --dataset_dir dataset/test \
+    --tfrecord_filename test \
+    --tfrecord_dir dataset/test \
+    --max_edge 384
 ```
 
 This example stores image data as JPEG encoded raw bytes and decodes

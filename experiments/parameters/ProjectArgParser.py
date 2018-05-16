@@ -95,7 +95,7 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.add_argument(
-            '--parallel_interleave_sources', '-pis', type=int, default=1,
+            '--parallel_interleave_sources', '-pis', type=int, default=2,
             help='[default: %(default)s] The number of input sources that are '
                  'parsed in parallel and interleaved.',
             metavar='<PIS>'
@@ -109,7 +109,7 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.add_argument(
-            '--prefetch_examples', '-pre', type=int, default=0,
+            '--prefetch_examples', '-pre', type=int, default=1024,
             help='[default: %(default)s] The number of examples to prefetch.',
             metavar='<PRE>'
         )
