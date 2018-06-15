@@ -62,14 +62,18 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
     if mode == tf.estimator.ModeKeys.EVAL:
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, eval_metric_ops=metrics)
 
-    # TODO: The learning rate should be an untrainable variable
-    learning_rate = tf.constant(model.params.learning_rate, dtype=tf.float32, name='learning_rate')
-
     # We now define the optimizer.
     with tf.variable_scope('optimization'):
+        # We store the learning rate as a variable so that we can modify (or feed)
+        # it later on.
+        learning_rate = tf.Variable(model.params.learning_rate, dtype=tf.float32, trainable=False, name='learning_rate')
+
         # TODO: Add additional optimizer parameters to hyper-parameters
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = optimizer.minimize(loss, tf.train.get_or_create_global_step())
+
+    # We also want the learning rate reported in TensorBoard.
+    tf.summary.scalar('learning_rate', learning_rate)
 
     # For training, we specify the optimizer
     assert mode == tf.estimator.ModeKeys.TRAIN, 'An unknown mode was specified: {}'.format(mode)
