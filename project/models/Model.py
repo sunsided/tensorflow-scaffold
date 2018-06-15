@@ -1,12 +1,18 @@
+import argparse
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
 
 
+HyperParameters = Union[dict, HParams, argparse.Namespace]
+
+
 class Model(metaclass=ABCMeta):
-    def __init__(self):
+    def __init__(self, params: Optional[HyperParameters] = None):
         self.__params = self.default_hparams()
+        if params is not None:
+            self.apply_hparams(params)
 
     @property
     def params(self) -> HParams:
@@ -35,13 +41,24 @@ class Model(metaclass=ABCMeta):
         """
         pass
 
-    def apply_hparams(self, params: Union[dict, HParams]) -> None:
+    def __call__(self, features: tf.Tensor, mode: str) -> Dict[str, tf.Tensor]:
+        """
+        Builds the model graph.
+        :param features: The input features.
+        :param mode: The operation mode, one of tf.estimator.ModeKeys.
+        :return: A dictionary of endpoint names to tensors.
+        """
+        return self.build(features, mode)
+
+    def apply_hparams(self, params: HyperParameters) -> None:
         """
         Applies hyperparameters to the current configuration.
         :param params: The parameters to apply.
         """
         if isinstance(params, HParams):
             params = params.values()
+        elif isinstance(params, argparse.Namespace):
+            params = vars(params)
         elif not isinstance(params, dict):
             raise RuntimeError("Invalid argument type for hyperparameters.")
 
