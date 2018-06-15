@@ -14,7 +14,9 @@ class SimpleModel(Model):
                        dropout_rate=0.5,
                        l2_regularization=1e-5,
                        xentropy_label_smoothing=0.,
-                       fine_tuning=False)
+                       adam_beta1=0.9,
+                       adam_beta2=0.999,
+                       adam_epsilon=1e-8)
 
     def build(self, features: tf.Tensor, mode: str) -> Output:
         with tf.variable_scope('input_normalization'):

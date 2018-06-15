@@ -69,7 +69,10 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
         learning_rate = tf.Variable(model.params.learning_rate, dtype=tf.float32, trainable=False, name='learning_rate')
 
         # TODO: Add additional optimizer parameters to hyper-parameters
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate,
+                                           beta1=model.params.adam_beta1,
+                                           beta2=model.params.adam_beta2,
+                                           epsilon=model.params.adam_epsilon)
         train_op = optimizer.minimize(loss, tf.train.get_or_create_global_step())
 
     # We also want the learning rate reported in TensorBoard.

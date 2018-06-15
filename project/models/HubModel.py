@@ -14,6 +14,9 @@ class HubModel(Model):
                        dropout_rate=0.5,
                        l2_regularization=1e-5,
                        xentropy_label_smoothing=0.,
+                       adam_beta1=0.9,
+                       adam_beta2=0.999,
+                       adam_epsilon=1e-8,
                        fine_tuning=False)
 
     def build(self, features: tf.Tensor, mode: str) -> Output:
