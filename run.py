@@ -6,12 +6,12 @@ import numpy as np
 from experiments.hooks import ExamplesPerSecondHook
 from experiments.parameters import ProjectArgParser
 from project.data.inputs import input_fn
-from project.estimator import model_fn
+from project.model_fn import model_fn
 
 
 def main(flags: argparse.Namespace):
     # Set TensorFlow logging verbosity
-    tf.logging.set_verbosity(tf.logging.INFO if not flags.verbose else tf.logging.DEBUG)
+    tf.logging.set_verbosity(tf.logging.INFO if not flags.verbose else tf.logging.WARN)
 
     # Set random seed
     if flags.random_seed is not None:
@@ -44,7 +44,7 @@ def main(flags: argparse.Namespace):
         model_fn=model_fn,
         model_dir=flags.model_dir,
         config=run_config,
-        params=flags
+        params=flags  # TODO: Pass only hyperparameters
     )
 
     eval_steps = flags.max_eval_steps if flags.max_eval_steps is not None and flags.max_eval_steps > 0 else None
