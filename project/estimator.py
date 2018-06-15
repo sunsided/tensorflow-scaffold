@@ -36,8 +36,8 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
     tf.summary.image('input_image', features)
     tf.summary.histogram('features', features)
 
-    model = model_builder(params.model)
-    net = model(features, mode, params)
+    model = model_builder(params.model, params)
+    net = model(features, mode)
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         predictions = {

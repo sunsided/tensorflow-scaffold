@@ -1,4 +1,4 @@
-from typing import Dict, Union, Optional
+from typing import Optional
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.training import HParams
@@ -16,7 +16,6 @@ class HubModel(Model):
                        fine_tuning=False)
 
     def build(self, features: tf.Tensor, mode: str):
-        """ Base model definitions """
         is_training = mode == tf.estimator.ModeKeys.TRAIN
         graph = tf.get_default_graph()
 
