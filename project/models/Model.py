@@ -1,0 +1,63 @@
+from abc import ABCMeta, abstractmethod
+from typing import Dict, Union
+import tensorflow as tf
+from tensorflow.contrib.training import HParams
+
+
+class Model(metaclass=ABCMeta):
+    def __init__(self):
+        self.__params = self.default_hparams()
+
+    @property
+    def params(self) -> HParams:
+        """
+        Returns the hyperparameters.
+        :return:
+        """
+        return self.__params
+
+    @abstractmethod
+    def default_hparams(self) -> HParams:
+        """
+        Defines the default hyperparameters.
+        :return: The default hyperparameters.
+        """
+        # e.g. return tf.contrib.training.HParams(learning_rate=1e-5)
+        pass
+
+    @abstractmethod
+    def build(self, features: tf.Tensor, mode: str) -> Dict[str, tf.Tensor]:
+        """
+        Builds the model graph.
+        :param features: The input features.
+        :param mode: The operation mode, one of tf.estimator.ModeKeys.
+        :return: A dictionary of endpoint names to tensors.
+        """
+        pass
+
+    def apply_hparams(self, params: Union[dict, HParams]) -> None:
+        """
+        Applies hyperparameters to the current configuration.
+        :param params: The parameters to apply.
+        """
+        if isinstance(params, HParams):
+            params = params.values()
+        elif not isinstance(params, dict):
+            raise RuntimeError("Invalid argument type for hyperparameters.")
+
+        updated, new = {}, {}
+        for k, v in params.items():
+            if k in self.__params:
+                updated[k] = v
+            else:
+                new[k] = v
+
+        self.__params.override_from_dict(updated)
+        for k, v in new.items():
+            self.__params.add_hparam(k, v)
+
+        if len(updated) > 0 and len(new) == 0:
+            tf.logging.info("Updated %d hyper-parameters.", len(updated))
+        elif len(updated) > 0 and len(new) > 0:
+            # If this happens, something is probably missing in self.default_hparams()
+            tf.logging.warn("Updated %d and added %d hyper-parameters.", len(updated), len(new))
