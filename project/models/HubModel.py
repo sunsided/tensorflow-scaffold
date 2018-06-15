@@ -2,7 +2,7 @@ from typing import Optional
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.training import HParams
-from .Model import Model, HyperParameters
+from .Model import Model, HyperParameters, Output, Losses, Metrics
 
 
 class HubModel(Model):
@@ -13,9 +13,10 @@ class HubModel(Model):
         return HParams(learning_rate=1e-5,
                        dropout_rate=0.5,
                        l2_regularization=1e-5,
+                       xentropy_label_smoothing=0.,
                        fine_tuning=False)
 
-    def build(self, features: tf.Tensor, mode: str):
+    def build(self, features: tf.Tensor, mode: str) -> Output:
         is_training = mode == tf.estimator.ModeKeys.TRAIN
         graph = tf.get_default_graph()
 
@@ -85,3 +86,33 @@ class HubModel(Model):
 
         return {'logits': logits,
                 'predictions': prediction}
+
+    def loss(self, labels: tf.Tensor, net: Output) -> Losses:
+        xentropy = tf.losses.sigmoid_cross_entropy(
+            multi_class_labels=labels, logits=net['logits'],
+            label_smoothing=self.params.xentropy_label_smoothing)
+        loss = tf.add(xentropy, tf.losses.get_regularization_loss(), name='loss')
+
+        losses_to_report = {'loss': loss,
+                            'xentropy': xentropy}
+        return loss, losses_to_report
+
+    def eval_metrics(self, labels: tf.Tensor, net: Output) -> Metrics:
+        # For area under curve metrics we need the prediction probabilities.
+        probability = net['predictions']
+        auc = tf.metrics.auc(labels=labels, predictions=probability, name='auc')
+
+        # TODO: Re-evaluate this one.
+        # Accuracy, precision and recall metrics are meant for single-class classification
+        # where we predict the class (e.g. via argmax).
+        # They expect a value that can be converted to bool. Here, we cutoff at a specific threshold.
+        label_hot = tf.cast(labels, dtype=tf.bool)
+        prediction_hot = tf.greater_equal(probability, 0.5)
+        accuracy = tf.metrics.accuracy(labels=label_hot, predictions=prediction_hot, name='accuracy')
+        precision = tf.metrics.precision(labels=label_hot, predictions=prediction_hot, name='precision')
+        recall = tf.metrics.recall(labels=label_hot, predictions=prediction_hot, name='recall')
+
+        return {'accuracy': accuracy,
+                'precision': precision,
+                'recall': recall,
+                'auc': auc}

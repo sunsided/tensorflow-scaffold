@@ -1,26 +1,26 @@
 from argparse import Namespace
-from typing import Dict
 import tensorflow as tf
 
 from project.models import model_builder
+from project.models.Model import Losses
 
 
-def eval_metrics(labels: tf.Tensor, prediction: tf.Tensor) -> Dict[str, tf.Operation]:
-    # For area under curve metrics we need the raw predictions.
-    auc = tf.metrics.auc(labels=labels, predictions=prediction, name='auc')
+def _report_losses(losses: Losses) -> tf.Tensor:
+    """
+    Splits the training loss from the tensors that should
+    be reported as part of the regular training output.
+    :param losses: The losses to process.
+    :return: The training loss.
+    """
+    if isinstance(losses, tf.Tensor):
+        return losses
+    assert isinstance(losses, tuple)
+    loss, to_report = losses
 
-    # Accuracy, precision and recall metrics are meant for single-class classification.
-    # They expect a value that can be converted to bool. Here, we cutoff at a specific threshold.
-    label_hot = tf.cast(labels, dtype=tf.bool)
-    prediction_hot = tf.greater_equal(prediction, 0.5)
-    accuracy = tf.metrics.accuracy(labels=label_hot, predictions=prediction_hot, name='accuracy')
-    precision = tf.metrics.precision(labels=label_hot, predictions=prediction_hot, name='precision')
-    recall = tf.metrics.recall(labels=label_hot, predictions=prediction_hot, name='recall')
-
-    return {'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'auc': auc}
+    assert isinstance(to_report, dict)
+    for name, tensor in to_report.items():
+        tf.identity(tensor, name)
+    return loss
 
 
 def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespace) -> tf.estimator.EstimatorSpec:
@@ -36,7 +36,7 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
     tf.summary.image('input_image', features)
 
     # We now construct the models according to the configuration.
-    model = model_builder(params.model, params)  # TODO: Use hyperparameters here
+    model = model_builder(params.model, params)  # TODO: Use "real" hyperparameters here
     net = model(features, mode)
 
     # During prediction, we directly return the output of the network.
@@ -52,13 +52,11 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
 
     # For training and testing/evaluation, we need loss and accuracy metrics.
     with tf.variable_scope('metrics'):
-        xentropy = tf.losses.sigmoid_cross_entropy(multi_class_labels=labels, logits=net['logits'])
-        loss = tf.add(xentropy, tf.losses.get_regularization_loss(), name='total_loss')
-        metrics = eval_metrics(labels, net['predictions'])
+        loss = model.loss(labels, net)
+        metrics = model.eval_metrics(labels, net)
 
-    # TODO: Add to tensors_to_log collection
-    tf.identity(xentropy, name='xentropy')
-    loss = tf.identity(loss, name='loss')
+    # During training, we want to report losses.
+    loss = _report_losses(loss)
 
     # For testing/evaluation, we can now return the
     if mode == tf.estimator.ModeKeys.EVAL:

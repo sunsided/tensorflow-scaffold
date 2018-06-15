@@ -2,7 +2,7 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
 from .visualization import put_kernels_on_grid
-from .Model import Model, HyperParameters
+from .Model import Model, HyperParameters, Output, Losses
 
 
 class SimpleModel(Model):
@@ -13,12 +13,13 @@ class SimpleModel(Model):
         return HParams(learning_rate=1e-5,
                        dropout_rate=0.5,
                        l2_regularization=1e-5,
+                       xentropy_label_smoothing=0.,
                        fine_tuning=False)
 
-    def build(self, features: tf.Tensor, mode: str):
+    def build(self, features: tf.Tensor, mode: str) -> Output:
         with tf.variable_scope('input_normalization'):
             # We perform global mean and variance normalization.
-            features = tf.subtract(features, .5, name='mean_normalize')  # TODO: Obtain channel-correct means
+            features = tf.subtract(features, .5, name='mean_normalize')
             features = tf.multiply(features, 2., name='variance_normalize')
 
         with tf.variable_scope('model'):
@@ -98,3 +99,13 @@ class SimpleModel(Model):
 
         return {'logits': logits,
                 'predictions': prediction}
+
+    def loss(self, labels: tf.Tensor, net: Output) -> Losses:
+        xentropy = tf.losses.sigmoid_cross_entropy(
+            multi_class_labels=labels, logits=net['logits'],
+            label_smoothing=self.params.xentropy_label_smoothing)
+        loss = tf.add(xentropy, tf.losses.get_regularization_loss(), name='total_loss')
+
+        losses_to_report = {'loss': loss,
+                            'xentropy': xentropy}
+        return loss, losses_to_report

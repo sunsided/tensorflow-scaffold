@@ -1,11 +1,17 @@
 import argparse
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, Tuple
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
 
 
 HyperParameters = Union[dict, HParams, argparse.Namespace]
+Output = Dict[str, tf.Tensor]
+Metrics = Dict[str, tf.Tensor]
+
+SingleLoss = tf.Tensor                 # A single training loss tensor
+LossesToReport = Dict[str, tf.Tensor]  # Losses that should be reported during training progress
+Losses = Union[SingleLoss, Tuple[SingleLoss, LossesToReport]]
 
 
 class Model(metaclass=ABCMeta):
@@ -32,7 +38,7 @@ class Model(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def build(self, features: tf.Tensor, mode: str) -> Dict[str, tf.Tensor]:
+    def build(self, features: tf.Tensor, mode: str) -> Output:
         """
         Builds the model graph.
         :param features: The input features.
@@ -41,7 +47,26 @@ class Model(metaclass=ABCMeta):
         """
         pass
 
-    def __call__(self, features: tf.Tensor, mode: str) -> Dict[str, tf.Tensor]:
+    @abstractmethod
+    def loss(self, labels: tf.Tensor, net: Output) -> Losses:
+        """
+        Determines the losses and returns them as a dictionary.
+        :param labels: The ground truth labels.
+        :param net: The network output.
+        :return: The losses.
+        """
+        pass
+
+    def eval_metrics(self, labels: tf.Tensor, net: Output) -> Metrics:
+        """
+        Defines the metrics used during testing/evaluation.
+        :param labels: The ground truth labels.
+        :param net: The network output.
+        :return: A dictionary of metric name to metric operation (e.g. tf.metrics.accuracy).
+        """
+        return {}
+
+    def __call__(self, features: tf.Tensor, mode: str) -> Output:
         """
         Builds the model graph.
         :param features: The input features.
