@@ -71,6 +71,7 @@ def main(flags: argparse.Namespace):
         ]
 
         # TODO: Move 'out-eval' to configuration
+        # TODO: Metric saving is a problem because we need to track the best loss _between restarts_ ...
         eval_hooks = [
             EvaluationCheckpointSaverHook(checkpoint_dir='out-eval', tensor_values=tensor_values)
         ]
