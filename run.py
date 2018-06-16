@@ -59,16 +59,18 @@ def main(flags: argparse.Namespace):
         # The tensors to log during training
         tensors_to_log = ['learning_rate', 'loss', 'xentropy']
 
+        # The tensors to watch for minimization during evaluation.
         tensor_values = {'loss': None}
 
         # Set up hook that outputs training logs every N steps.
         # TODO: Add profiler hooks support
-        # TODO: Take snapshot whenever training accuracy increases!
         report_every_n_iter = 1000
         train_hooks = [
             tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=report_every_n_iter),
             ExamplesPerSecondHook(batch_size=flags.train_batch_size, every_n_steps=report_every_n_iter)
         ]
+
+        # TODO: Move 'out-eval' to configuration
         eval_hooks = [
             EvaluationCheckpointSaverHook(checkpoint_dir='out-eval', tensor_values=tensor_values)
         ]
