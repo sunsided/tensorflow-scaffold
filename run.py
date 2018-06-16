@@ -60,6 +60,7 @@ def main(flags: argparse.Namespace):
 
         # Set up hook that outputs training logs every N steps.
         # TODO: Add profiler hooks support
+        # TODO: Take snapshot whenever training accuracy increases!
         report_every_n_iter = 1000
         train_hooks = [
             tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=report_every_n_iter),
@@ -83,6 +84,9 @@ def main(flags: argparse.Namespace):
                                           checkpoint_path=eval_checkpoint,
                                           name=eval_name)
         print('\nEvaluation results:\n\t%s\n' % eval_results)
+
+    # TODO: Add exporting capability (frozen graph)
+    # TODO: Add Experiments API
 
 
 def get_cli_args():
