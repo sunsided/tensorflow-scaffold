@@ -18,13 +18,25 @@ class ProjectArgParser(argparse.ArgumentParser):
         ], add_help=True)
 
         self.add_argument(
+            '--config_file', '-cf', default='project.yaml',
+            help='[default: %(default)s] The project configuration file to use.',
+            metavar='<CF>',
+        )
+
+        self.add_argument(
+            '--config_set', '-cs', default='default',
+            help='[default: %(default)s] The project configuration set to use.',
+            metavar='<CS>',
+        )
+
+        self.add_argument(
             '--model', '-m', default='latest',
             help='[default: %(default)s] The model to use.',
             metavar='<M>',
         )
 
         self.add_argument(
-            '--hyperparameters_file', '-hpf', default='hyperparameters.yaml',
+            '--hyperparameter_file', '-hpf', default='hyperparameters.yaml',
             help='[default: %(default)s] The hyperparameter file to use.',
             metavar='<HPF>',
         )

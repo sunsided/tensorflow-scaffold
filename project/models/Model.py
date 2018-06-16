@@ -38,11 +38,12 @@ class Model(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def build(self, features: tf.Tensor, mode: str) -> Output:
+    def build(self, features: tf.Tensor, mode: str, params: Any) -> Output:
         """
         Builds the model graph.
         :param features: The input features.
         :param mode: The operation mode, one of tf.estimator.ModeKeys.
+        :param params: The command-line flags and project configuration.
         :return: A dictionary of endpoint names to tensors.
         """
         pass
@@ -66,14 +67,15 @@ class Model(metaclass=ABCMeta):
         """
         return {}
 
-    def __call__(self, features: tf.Tensor, mode: str) -> Output:
+    def __call__(self, features: tf.Tensor, mode: str, params: Any) -> Output:
         """
         Builds the model graph.
         :param features: The input features.
         :param mode: The operation mode, one of tf.estimator.ModeKeys.
+        :param params: The command-line flags and project configuration.
         :return: A dictionary of endpoint names to tensors.
         """
-        return self.build(features, mode)
+        return self.build(features, mode, params)
 
     def apply_hparams(self, params: HyperParameters) -> None:
         """

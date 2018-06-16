@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.training import HParams
@@ -19,7 +19,7 @@ class HubModel(Model):
                        adam_epsilon=1e-8,
                        fine_tuning=False)
 
-    def build(self, features: tf.Tensor, mode: str) -> Output:
+    def build(self, features: tf.Tensor, mode: str, params: Any) -> Output:
         is_training = mode == tf.estimator.ModeKeys.TRAIN
         graph = tf.get_default_graph()
 

@@ -73,7 +73,7 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Any) -> 
     # We now construct the models according to the configuration.
     assert isinstance(params.model, Model)
     model = params.model
-    net = model(features, mode)
+    net = model(features, mode, params)
 
     # In order to validate the input images in TensorBoard, we're adding them to the images collection.
     assert isinstance(features, tf.Tensor)

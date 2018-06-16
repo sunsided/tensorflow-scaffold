@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
 from experiments.visualization import put_kernels_on_grid
@@ -18,7 +18,7 @@ class SimpleModel(Model):
                        adam_beta2=0.999,
                        adam_epsilon=1e-8)
 
-    def build(self, features: tf.Tensor, mode: str) -> Output:
+    def build(self, features: tf.Tensor, mode: str, params: Any) -> Output:
         with tf.variable_scope('input_normalization'):
             # We perform global mean and variance normalization.
             features = tf.subtract(features, .5, name='mean_normalize')

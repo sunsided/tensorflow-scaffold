@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 
 from experiments.hooks import ExamplesPerSecondHook
-from experiments.parameters import ProjectArgParser, YParams
+from experiments.parameters import get_project_parameters, YParams
 from project import input_fn, model_fn, model_builder
 
 
@@ -23,8 +23,6 @@ def main(flags: argparse.Namespace):
     if (flags.prefetch_to_device is None) and (num_gpu == 1):
         flags.prefetch_to_device = tf.test.gpu_device_name()
 
-    # TODO: Serialize model parameters into configuration file (check e.g. tf.contrib.training.HParams)
-
     # Session configuration
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = flags.gpu_growth
@@ -39,9 +37,8 @@ def main(flags: argparse.Namespace):
     run_config = tf.estimator.RunConfig(save_summary_steps=200, session_config=config)
 
     # Load the hyperparameters
-    hparams = YParams(flags.hyperparameters_file, flags.hyperparameter_set)
+    hparams = YParams(flags.hyperparameter_file, flags.hyperparameter_set)
     # TODO: Replace parameters passed on the command line from flags
-    # TODO: Replace flags with YParams for application; see https://hanxiao.github.io/2017/12/21/Use-HParams-and-YAML-to-Better-Manage-Hyperparameters-in-Tensorflow/
 
     # We now obtain the model and replace the parameter with the actual instance.
     model = model_builder(flags.model, hparams)
@@ -52,7 +49,7 @@ def main(flags: argparse.Namespace):
         model_fn=model_fn,
         model_dir=flags.model_dir,
         config=run_config,
-        params=flags  # TODO: Pass only hyperparameters
+        params=flags
     )
 
     eval_steps = flags.max_eval_steps if flags.max_eval_steps is not None and flags.max_eval_steps > 0 else None
@@ -89,15 +86,12 @@ def main(flags: argparse.Namespace):
 
 
 def get_cli_args():
-    # For hyperparameters with JSON export functionality,
-    # we could use HParams. However, they do not fit in easily with argparse.
-    # https://www.tensorflow.org/api_docs/python/tf/contrib/training/HParams
-    parser = ProjectArgParser()
-    args = parser.parse_args()
+    args = get_project_parameters()
 
+    # We have batch_size as a global default to training and validation batch sizes.
+    # Here we joint them.
     if args.train_batch_size is None or args.train_batch_size <= 0:
         args.train_batch_size = args.batch_size
-
     if args.validation_batch_size is None or args.validation_batch_size <= 0:
         args.validation_batch_size = args.batch_size
 
