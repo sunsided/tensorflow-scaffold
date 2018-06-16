@@ -30,6 +30,12 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.add_argument(
+            '--hyperparameter_set', '-hps', default='default',
+            help='[default: %(default)s] The hyperparameter set to use.',
+            metavar='<HPS>',
+        )
+
+        self.add_argument(
             '--validation_dir', '-vd', default=tempfile.tempdir,
             help='[default: %(default)s] The location of the validation data.',
             metavar='<VD>',

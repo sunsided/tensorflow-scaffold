@@ -39,7 +39,7 @@ def main(flags: argparse.Namespace):
     run_config = tf.estimator.RunConfig(save_summary_steps=200, session_config=config)
 
     # Load the hyperparameters
-    hparams = YParams(flags.hyperparameters_file)
+    hparams = YParams(flags.hyperparameters_file, flags.hyperparameter_set)
     # TODO: Replace parameters passed on the command line from flags
     # TODO: Replace flags with YParams for application; see https://hanxiao.github.io/2017/12/21/Use-HParams-and-YAML-to-Better-Manage-Hyperparameters-in-Tensorflow/
 
