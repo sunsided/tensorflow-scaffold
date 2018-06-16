@@ -37,6 +37,8 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
         self._global_step_tensor = None
         self._metrics_to_minimize = tensor_values
         self._tensors = None
+        self._accumulated_values = None
+        self._accumulation_count = 0
         self._checkpoint_dir = checkpoint_dir
         self._save_path = os.path.join(checkpoint_dir, checkpoint_basename)
         self._scaffold = scaffold
@@ -49,6 +51,9 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
 
         graph = ops.get_default_graph()
         self._tensors = [(n, graph.get_tensor_by_name(n + ':0')) for n in self._metrics_to_minimize]
+        self._accumulated_values = {tensor[0]: 0.0 for tensor in self._tensors}
+        self._accumulation_count = 0
+
         for l in self._listeners:
             l.begin()
 
@@ -68,10 +73,21 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
         return SessionRunArgs(fetches=fetches)
 
     def after_run(self, run_context, run_values):
+        self._accumulation_count += 1
+
         values = {tensor[0]: value for tensor, value in zip(self._tensors, run_values.results)}
+        for name, new_value in values.items():
+            self._accumulated_values[name] += new_value
+
+    def end(self, session):
+        last_step = session.run(self._global_step_tensor)
+        for l in self._listeners:
+            l.end(session, last_step)
 
         take_snapshot = False
-        for name, new_value in values.items():
+        for name, new_value in self._accumulated_values.items():
+            # Obtain the average value over the batches.
+            new_value /= self._accumulation_count
             old_value = self._metrics_to_minimize[name]
             if old_value is None:
                 self._metrics_to_minimize[name] = new_value
@@ -80,13 +96,8 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
                 take_snapshot = True
 
         if take_snapshot:
-            global_step = run_context.session.run(self._global_step_tensor)
-            self._save(run_context.session, global_step)
-
-    def end(self, session):
-        last_step = session.run(self._global_step_tensor)
-        for l in self._listeners:
-            l.end(session, last_step)
+            global_step = session.run(self._global_step_tensor)
+            self._save(session, global_step)
 
     def _save(self, session, step):
         """Saves the latest checkpoint."""
