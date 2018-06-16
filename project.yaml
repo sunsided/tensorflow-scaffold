@@ -9,3 +9,10 @@ default: &DEFAULT
 gtx1080ti:
   <<: *DEFAULT
   train_batch_size: 512
+
+thinkpadx201t:
+  <<: *DEFAULT
+  train_batch_size: 10
+  train_epochs: 10
+  epochs_between_evals: 1
+  random_seed: 0

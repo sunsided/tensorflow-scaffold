@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 
 from experiments.hooks import ExamplesPerSecondHook
+from experiments.hooks.EvaluationCheckpointSaverHook import EvaluationCheckpointSaverHook
 from experiments.parameters import get_project_parameters, YParams
 from project import input_fn, model_fn, model_builder
 
@@ -58,13 +59,20 @@ def main(flags: argparse.Namespace):
         # The tensors to log during training
         tensors_to_log = ['learning_rate', 'loss', 'xentropy']
 
+        # The tensors to watch for minimization during evaluation.
+        tensor_values = {'loss': None}
+
         # Set up hook that outputs training logs every N steps.
         # TODO: Add profiler hooks support
-        # TODO: Take snapshot whenever training accuracy increases!
         report_every_n_iter = 1000
         train_hooks = [
             tf.train.LoggingTensorHook(tensors=tensors_to_log, every_n_iter=report_every_n_iter),
             ExamplesPerSecondHook(batch_size=flags.train_batch_size, every_n_steps=report_every_n_iter)
+        ]
+
+        # TODO: Move 'out-eval' to configuration
+        eval_hooks = [
+            EvaluationCheckpointSaverHook(checkpoint_dir='out-eval', tensor_values=tensor_values)
         ]
 
         train_steps = flags.max_train_steps if flags.max_train_steps is not None and flags.max_train_steps >= 0 else None
@@ -73,7 +81,8 @@ def main(flags: argparse.Namespace):
                             hooks=train_hooks,
                             max_steps=train_steps)
             eval_results = estimator.evaluate(input_fn=lambda: input_fn(flags, is_training=False),
-                                              steps=eval_steps)
+                                              steps=eval_steps,
+                                              hooks=eval_hooks)
             print('\nEvaluation results:\n\t%s\n' % eval_results)
             # TODO: Stop running when accuracy is below flags.stop_threshold
     else:
