@@ -1,0 +1,11 @@
+default: &DEFAULT
+  train_batch_size: 32
+  train_epochs: 1000
+  epochs_between_evals: 100
+  #hyperparameters_file: hyperparameters.yaml
+  hyperparameter_set: mobilenet
+  model_dir: out
+
+gtx1080ti:
+  <<: *DEFAULT
+  train_batch_size: 512
