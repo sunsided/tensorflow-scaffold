@@ -24,6 +24,12 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.add_argument(
+            '--hyperparameters_file', '-hpf', default='hyperparameters.yaml',
+            help='[default: %(default)s] The hyperparameter file to use.',
+            metavar='<HPF>',
+        )
+
+        self.add_argument(
             '--validation_dir', '-vd', default=tempfile.tempdir,
             help='[default: %(default)s] The location of the validation data.',
             metavar='<VD>',

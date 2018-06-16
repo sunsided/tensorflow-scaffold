@@ -4,10 +4,8 @@ import tensorflow as tf
 import numpy as np
 
 from experiments.hooks import ExamplesPerSecondHook
-from experiments.parameters import ProjectArgParser
-from project.data.inputs import input_fn
-from project.model_fn import model_fn
-from project.models import model_builder
+from experiments.parameters import ProjectArgParser, YParams
+from project import input_fn, model_fn, model_builder
 
 
 def main(flags: argparse.Namespace):
@@ -40,8 +38,13 @@ def main(flags: argparse.Namespace):
     # Run configuration
     run_config = tf.estimator.RunConfig(save_summary_steps=200, session_config=config)
 
-    # TODO: Obtain model here, pass info to input_fn
-    model = model_builder(flags.model, flags)  # TODO: Use "real" hyperparameters (from file!) here
+    # Load the hyperparameters
+    hparams = YParams(flags.hyperparameters_file)
+    # TODO: Replace parameters passed on the command line from flags
+    # TODO: Replace flags with YParams for application; see https://hanxiao.github.io/2017/12/21/Use-HParams-and-YAML-to-Better-Manage-Hyperparameters-in-Tensorflow/
+
+    # We now obtain the model and replace the parameter with the actual instance.
+    model = model_builder(flags.model, hparams)
     flags.model = model
 
     # Create estimator that trains and evaluates the model
