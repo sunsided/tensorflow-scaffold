@@ -7,6 +7,7 @@ from experiments.hooks import ExamplesPerSecondHook
 from experiments.parameters import ProjectArgParser
 from project.data.inputs import input_fn
 from project.model_fn import model_fn
+from project.models import model_builder
 
 
 def main(flags: argparse.Namespace):
@@ -38,6 +39,10 @@ def main(flags: argparse.Namespace):
 
     # Run configuration
     run_config = tf.estimator.RunConfig(save_summary_steps=200, session_config=config)
+
+    # TODO: Obtain model here, pass info to input_fn
+    model = model_builder(flags.model, flags)  # TODO: Use "real" hyperparameters (from file!) here
+    flags.model = model
 
     # Create estimator that trains and evaluates the model
     estimator = tf.estimator.Estimator(

@@ -1,6 +1,6 @@
 import argparse
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Union, Optional, Tuple
+from typing import Dict, Union, Optional, Tuple, Any
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
 
@@ -21,7 +21,7 @@ class Model(metaclass=ABCMeta):
             self.apply_hparams(params)
 
     @property
-    def params(self) -> HParams:
+    def params(self) -> Union[HParams, Any]:
         """
         Returns the hyperparameters.
         :return:

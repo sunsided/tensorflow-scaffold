@@ -1,8 +1,7 @@
-from argparse import Namespace
+from typing import Any
 import tensorflow as tf
 
-from project.models import model_builder
-from project.models.Model import Losses, Metrics, Output
+from project.models.Model import Model, Losses, Metrics, Output
 
 
 def prediction_spec(net: Output) -> tf.estimator.EstimatorSpec:
@@ -62,7 +61,7 @@ def _report_losses(losses: Losses) -> tf.Tensor:
     return loss
 
 
-def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespace) -> tf.estimator.EstimatorSpec:
+def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Any) -> tf.estimator.EstimatorSpec:
     """ Model function to be used by the estimator.
 
     Returns:
@@ -71,12 +70,14 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
 
     # TODO: Support multi-headed models
 
-    # In order to validate the input images in TensorBoard, we're adding them to the images collection.
-    tf.summary.image('input_image', features)
-
     # We now construct the models according to the configuration.
-    model = model_builder(params.model, params)  # TODO: Use "real" hyperparameters here
+    assert isinstance(params.model, Model)
+    model = params.model
     net = model(features, mode)
+
+    # In order to validate the input images in TensorBoard, we're adding them to the images collection.
+    assert isinstance(features, tf.Tensor)
+    tf.summary.image('input_image', features)
 
     # During prediction, we directly return the output of the network.
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -92,7 +93,7 @@ def model_fn(features: tf.Tensor, labels: tf.Tensor, mode: str, params: Namespac
 
     # For testing/evaluation, we can now return the
     if mode == tf.estimator.ModeKeys.EVAL:
-        return eval_spec(net, metrics)
+        return eval_spec(loss, metrics)
 
     # We store the learning rate as a variable so that we can modify (or feed)
     # it later on.
