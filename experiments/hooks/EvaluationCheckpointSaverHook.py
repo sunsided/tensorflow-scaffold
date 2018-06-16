@@ -94,6 +94,8 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
                 continue
             if old_value > new_value:
                 take_snapshot = True
+            else:
+                logging.info("Evaluation metric %s did not improve (%f >= %f).", name, new_value, old_value)
 
         if take_snapshot:
             global_step = session.run(self._global_step_tensor)
