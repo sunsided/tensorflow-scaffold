@@ -10,17 +10,23 @@ Inspirations and sources:
 - [Preparing a large-scale image dataset with TensorFlow's TFRecord files](https://kwotsin.github.io/tech/2017/01/29/tfrecords.html)
 - [Getting Text into Tensorflow with the Dataset API](https://medium.com/@TalPerry/getting-text-into-tensorflow-with-the-dataset-api-ffb832c8bec6)
 - [How to write into and read from a TFRecords file in TensorFlow](http://www.machinelearninguru.com/deep_learning/tensorflow/basics/tfrecord/tfrecord.html)
+- [Use HParams and YAML to Better Manage Hyperparameters in Tensorflow](https://hanxiao.github.io/2017/12/21/Use-HParams-and-YAML-to-Better-Manage-Hyperparameters-in-Tensorflow/)
 - [generator-tf](https://github.com/jrabary/generator-tf/)
 
 ## Structure of the project
 
-- `project`: project modules
-- `experiments`: experiment scripts
-- `configs`: experiments configuration files
+- `project`: project modules such as networks, input pipelines, etc.
+- `experiments`: scripts and boilerplate code
+
+Two configuration files exist:
+
+- `project.yaml`: Serialized command-line options
+- `hyperparameters.yaml`: Model hyperparameters
 
 ## Run training
 
-In order to run a training session, try
+In order to run a training session (manually overriding configuration
+from `project.yaml`), try
 
 ```bash
 python run.py \
