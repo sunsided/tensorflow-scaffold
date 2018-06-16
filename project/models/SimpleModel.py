@@ -1,7 +1,7 @@
 from typing import Optional
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
-from .visualization import put_kernels_on_grid
+from experiments.visualization import put_kernels_on_grid
 from .Model import Model, HyperParameters, Output, Losses
 
 
