@@ -6,8 +6,8 @@ from .HubModel import HubModel
 
 
 MODELS = OrderedDict([
-    ('simple_model', SimpleModel),
-    ('hub_model', HubModel)
+    ('simple', SimpleModel),
+    ('hub', HubModel)
 ])
 
 
