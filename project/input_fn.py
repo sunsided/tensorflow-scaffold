@@ -53,16 +53,20 @@ def input_fn(params: Namespace, mode: str) -> Tuple[tf.Tensor, tf.Tensor]:
             buffer_size=params.batch_size,
             count=params.epochs_between_evals))
 
-    def map_data(feature: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
-        feature = augment_image(feature, fast_mode=True)
-        return feature, label
-
-    dataset = dataset.apply(
-        tf.contrib.data.map_and_batch(
-            map_func=map_data,
-            batch_size=params.batch_size,
-            num_parallel_batches=max(1, params.num_parallel_batches),
-            drop_remainder=False))
+    if is_training:
+        # During training runs, we augment the input data.
+        def map_data(feature: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+            feature = augment_image(feature, fast_mode=True)
+            return feature, label
+        dataset = dataset.apply(
+            tf.contrib.data.map_and_batch(
+                map_func=map_data,
+                batch_size=params.train_batch_size,
+                num_parallel_batches=max(1, params.num_parallel_batches),
+                drop_remainder=False))
+    else:
+        # During validation runs, we don't need to augment the input data.
+        dataset = dataset.batch(batch_size=params.eval_batch_size)
 
     if params.prefetch_batches >= 1:
         dataset = dataset.prefetch(params.prefetch_batches)

@@ -82,9 +82,9 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.add_argument(
-            '--validation_batch_size', '-vbs', type=int, default=None,
+            '--eval_batch_size', '-ebs', type=int, default=None,
             help='[default: %(default)s] Batch size for evaluation.',
-            metavar='<BS>'
+            metavar='<EBS>'
         )
 
         self.add_argument(
@@ -174,7 +174,7 @@ class ProjectArgParser(argparse.ArgumentParser):
             intra_op_parallelism_threads=multiprocessing.cpu_count(),
             num_parallel_calls=multiprocessing.cpu_count(),
             epochs_between_evals=1,
-            batch_size=256,
+            batch_size=64,
             train_batch_size=None,   # default to global batch_size
-            validation_batch_size=None  # default to global batch_size
+            eval_batch_size=None  # default to global batch_size
         )

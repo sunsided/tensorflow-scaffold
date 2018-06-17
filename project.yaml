@@ -1,5 +1,5 @@
 default: &DEFAULT
-  train_batch_size: 32
+  batch_size: 32
   train_epochs: 1000
   epochs_between_evals: 100
   hyperparameter_file: hyperparameters.yaml
@@ -10,7 +10,8 @@ default: &DEFAULT
 
 gtx1080ti:
   <<: *DEFAULT
-  train_batch_size: 512
+  train_batch_size: 64
+  eval_batch_size: 128
 
 thinkpadx201t:
   <<: *DEFAULT
