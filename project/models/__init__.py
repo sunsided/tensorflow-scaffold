@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from typing import Optional
-from library.models.Model import HyperParameters
+from library.models.Model import HyperParameters, Model
 from .SimpleModel import SimpleModel
 from .HubModel import HubModel
 
