@@ -1,4 +1,5 @@
 import os
+from typing import Dict, Optional
 from tensorflow.python.training import session_run_hook
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import training_util
@@ -11,7 +12,7 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
 
     def __init__(self,
                  checkpoint_dir,
-                 tensor_values=None,
+                 tensors_to_mininimize=Dict[str, Optional[float]],
                  saver=None,
                  checkpoint_basename="eval.ckpt",
                  scaffold=None,
@@ -19,7 +20,7 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
         """Initializes a `CheckpointSaverHook`.
     Args:
       checkpoint_dir: `str`, base directory for the checkpoint files.
-      tensor_values: `Dict[str, float]`, dictionary of tensor names to their current values to minimize
+      tensors_to_mininimize: `Dict[str, Optional[float]]`, dictionary of tensor names to their current values to minimize
       saver: `Saver` object, used for saving.
       checkpoint_basename: `str`, base name for the checkpoint files.
       scaffold: `Scaffold`, use to get saver object.
@@ -35,7 +36,7 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
             raise ValueError("You cannot provide both saver and scaffold.")
         self._saver = saver
         self._global_step_tensor = None
-        self._metrics_to_minimize = tensor_values
+        self._metrics_to_minimize = {p[0]: p[1] for p in tensors_to_mininimize.items()}
         self._tensors = None
         self._accumulated_values = None
         self._accumulation_count = 0

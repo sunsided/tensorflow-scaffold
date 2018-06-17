@@ -1,6 +1,7 @@
 import argparse
 import multiprocessing
 import tempfile
+import os
 from .tf_official import BaseParser, ImageModelParser, ExportParser, PerformanceParser
 
 
@@ -16,6 +17,13 @@ class ProjectArgParser(argparse.ArgumentParser):
             ImageModelParser(),
             ExportParser(),
         ], add_help=True)
+
+        self.add_argument(
+            '--best_model_dir', '-bmd', default=tempfile.tempdir,
+            help='[default: %(default)s] The location of the best evaluation model checkpoint '
+                 'files.',
+            metavar='<BMD>',
+        )
 
         self.add_argument(
             '--config_file', '-cf', default='project.yaml',
@@ -159,7 +167,8 @@ class ProjectArgParser(argparse.ArgumentParser):
         self.set_defaults(
             data_dir='dataset',
             validate=False,
-            model_dir='out',
+            model_dir=os.path.join('out', 'intermediate'),
+            best_model_dir=os.path.join('out', 'best'),
             train_epochs=1000,
             inter_op_parallelism_threads=multiprocessing.cpu_count(),
             intra_op_parallelism_threads=multiprocessing.cpu_count(),

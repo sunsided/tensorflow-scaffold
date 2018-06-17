@@ -2,7 +2,7 @@ from typing import Optional, Any
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.training import HParams
-from .Model import Model, HyperParameters, Output, Losses, Metrics
+from experiments.models import Model, HyperParameters, Output, Losses, Metrics
 
 
 class HubModel(Model):

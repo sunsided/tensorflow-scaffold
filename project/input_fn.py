@@ -8,6 +8,75 @@ import tensorflow as tf
 from .data.image import parse_tfexample, read_image, augment_image
 
 
+def input_fn(params: Namespace, mode: str) -> Tuple[tf.Tensor, tf.Tensor]:
+    """Load data here and return features and labels tensors."""
+
+    # TODO: Add support for flags.use_synthetic_data
+
+    is_training = mode == tf.estimator.ModeKeys.TRAIN
+    data_prefix = 'train' if is_training else 'test'
+    data_dir = os.path.join(params.data_dir, data_prefix)
+
+    # dataset = tf.data.Dataset().from_generator(lambda: get_images(data_dir),
+    #                                            output_types=(tf.string, tf.int32),
+    #                                            output_shapes=(None, None))
+
+    # https://www.tensorflow.org/api_docs/python/tf/contrib/data/parallel_interleave
+    # https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset
+    file_pattern = os.path.join(data_dir, '*.tfrecord')
+
+    if params.parallel_interleave_sources > 1:
+        tfrecords = tf.data.Dataset.list_files(file_pattern)
+        tfrecords = tfrecords.cache()
+        dataset = tfrecords.apply(
+            tf.contrib.data.parallel_interleave(
+                map_func=tf.data.TFRecordDataset,
+                sloppy=True,
+                cycle_length=params.num_parallel_calls))
+    else:
+        dataset = tf.data.TFRecordDataset(filenames=glob.glob(file_pattern),
+                                          num_parallel_reads=max(1, params.num_parallel_reads))
+
+    def decode_example(example: tf.train.Example) -> Tuple[tf.Tensor, tf.Tensor]:
+        feature, label = parse_tfexample(example)
+        feature = read_image(feature, augment=is_training)
+        return feature, label
+
+    dataset = dataset.map(decode_example, num_parallel_calls=max(1, params.num_parallel_calls))
+
+    if params.prefetch_examples > 0:
+        dataset = dataset.prefetch(params.prefetch_examples)
+
+    # Fused shuffle / repeat.
+    dataset = dataset.apply(
+        tf.contrib.data.shuffle_and_repeat(
+            buffer_size=params.batch_size,
+            count=params.epochs_between_evals))
+
+    def map_data(feature: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+        feature = augment_image(feature, fast_mode=True)
+        return feature, label
+
+    dataset = dataset.apply(
+        tf.contrib.data.map_and_batch(
+            map_func=map_data,
+            batch_size=params.batch_size,
+            num_parallel_batches=max(1, params.num_parallel_batches),
+            drop_remainder=False))
+
+    if params.prefetch_batches >= 1:
+        dataset = dataset.prefetch(params.prefetch_batches)
+
+    if params.prefetch_to_device:
+        print(f'Prefetching to {params.prefetch_to_device} ...')
+        dataset = dataset.apply(
+            tf.contrib.data.prefetch_to_device(device=params.prefetch_to_device))
+
+    iterator = dataset.make_one_shot_iterator()
+    features, labels = iterator.get_next()
+    return features, labels
+
+
 def _resample_class(items: List[str], n: int) -> List[str]:
     """
     Resamples the items in the list to have exactly N items.
@@ -54,71 +123,3 @@ def get_images(data_dir: str) -> Tuple[str, float]:
 
         yield os.path.abspath(positive.pop()), 1
         yield os.path.abspath(negative.pop()), 0
-
-
-def input_fn(flags: Namespace, is_training: bool):
-    """Load data here and return features and labels tensors."""
-
-    # TODO: Add support for flags.use_synthetic_data
-
-    data_prefix = 'train' if is_training else 'test'
-    data_dir = os.path.join(flags.data_dir, data_prefix)
-
-    # dataset = tf.data.Dataset().from_generator(lambda: get_images(data_dir),
-    #                                            output_types=(tf.string, tf.int32),
-    #                                            output_shapes=(None, None))
-
-    # https://www.tensorflow.org/api_docs/python/tf/contrib/data/parallel_interleave
-    # https://www.tensorflow.org/api_docs/python/tf/data/TFRecordDataset
-    file_pattern = os.path.join(data_dir, '*.tfrecord')
-
-    if flags.parallel_interleave_sources > 1:
-        tfrecords = tf.data.Dataset.list_files(file_pattern)
-        tfrecords = tfrecords.cache()
-        dataset = tfrecords.apply(
-            tf.contrib.data.parallel_interleave(
-                map_func=tf.data.TFRecordDataset,
-                sloppy=True,
-                cycle_length=flags.num_parallel_calls))
-    else:
-        dataset = tf.data.TFRecordDataset(filenames=glob.glob(file_pattern),
-                                          num_parallel_reads=max(1, flags.num_parallel_reads))
-
-    def decode_example(example: tf.train.Example) -> Tuple[tf.Tensor, tf.Tensor]:
-        feature, label = parse_tfexample(example)
-        feature = read_image(feature, augment=is_training)
-        return feature, label
-
-    dataset = dataset.map(decode_example, num_parallel_calls=max(1, flags.num_parallel_calls))
-
-    if flags.prefetch_examples > 0:
-        dataset = dataset.prefetch(flags.prefetch_examples)
-
-    # Fused shuffle / repeat.
-    dataset = dataset.apply(
-        tf.contrib.data.shuffle_and_repeat(
-            buffer_size=flags.batch_size,
-            count=flags.epochs_between_evals))
-
-    def map_data(feature: tf.Tensor, label: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
-        feature = augment_image(feature, fast_mode=True)
-        return feature, label
-
-    dataset = dataset.apply(
-        tf.contrib.data.map_and_batch(
-            map_func=map_data,
-            batch_size=flags.batch_size,
-            num_parallel_batches=max(1, flags.num_parallel_batches),
-            drop_remainder=False))
-
-    if flags.prefetch_batches >= 1:
-        dataset = dataset.prefetch(flags.prefetch_batches)
-
-    if flags.prefetch_to_device:
-        print(f'Prefetching to {flags.prefetch_to_device} ...')
-        dataset = dataset.apply(
-            tf.contrib.data.prefetch_to_device(device=flags.prefetch_to_device))
-
-    iterator = dataset.make_one_shot_iterator()
-    features, labels = iterator.get_next()
-    return features, labels

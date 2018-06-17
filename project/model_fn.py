@@ -1,7 +1,7 @@
 from typing import Any
 import tensorflow as tf
 
-from project.models.Model import Model, Losses, Metrics, Output
+from experiments.models.Model import Model, Losses, Metrics, Output
 
 
 def prediction_spec(net: Output) -> tf.estimator.EstimatorSpec:
