@@ -1,18 +1,18 @@
 import os
 from typing import Dict, Optional
-from tensorflow.python.training import session_run_hook
+import tensorflow as tf
 from tensorflow.python.platform import tf_logging as logging
 from tensorflow.python.training import training_util
 from tensorflow.python.framework import ops
 from tensorflow.python.training.session_run_hook import SessionRunArgs
 
 
-class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
+class EvaluationCheckpointSaverHook(tf.train.SessionRunHook):
     """Saves checkpoints every N steps or seconds."""
 
     def __init__(self,
                  checkpoint_dir,
-                 tensors_to_mininimize=Dict[str, Optional[float]],
+                 tensors_to_minimize=Dict[str, Optional[float]],
                  saver=None,
                  checkpoint_basename="eval.ckpt",
                  scaffold=None,
@@ -20,7 +20,7 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
         """Initializes a `CheckpointSaverHook`.
     Args:
       checkpoint_dir: `str`, base directory for the checkpoint files.
-      tensors_to_mininimize: `Dict[str, Optional[float]]`, dictionary of tensor names to their current values to minimize
+      tensors_to_minimize: `Dict[str, Optional[float]]`, dictionary of tensor names to their current values to minimize
       saver: `Saver` object, used for saving.
       checkpoint_basename: `str`, base name for the checkpoint files.
       scaffold: `Scaffold`, use to get saver object.
@@ -36,7 +36,7 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
             raise ValueError("You cannot provide both saver and scaffold.")
         self._saver = saver
         self._global_step_tensor = None
-        self._metrics_to_minimize = {p[0]: p[1] for p in tensors_to_mininimize.items()}
+        self._metrics_to_minimize = {p[0]: p[1] for p in tensors_to_minimize.items()}
         self._tensors = None
         self._accumulated_values = None
         self._accumulation_count = 0
@@ -54,12 +54,12 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
         self._tensors = [(n, graph.get_tensor_by_name(n + ':0')) for n in self._metrics_to_minimize]
         self._accumulated_values = {tensor[0]: 0.0 for tensor in self._tensors}
         self._accumulation_count = 0
+        self._saver = self._saver if self._saver is not None else tf.train.Saver(max_to_keep=5)
 
         for l in self._listeners:
             l.begin()
 
-    def before_run(self, run_context):  # pylint: disable=unused-argument
-        # TODO: run_context.original_args has feed_dict and fetches, fetches contains [Adam, loss tensor] in _training_ runs
+    def before_run(self, run_context):
         if not self._graph_saved:
             self._graph_saved = True
             # We do write graph and saver_def at the first call of before_run.
@@ -132,8 +132,7 @@ class EvaluationCheckpointSaverHook(session_run_hook.SessionRunHook):
         elif len(savers) > 1:
             raise RuntimeError(
                 "More than one item in collection {}. "
-                "Please indicate which one to use by passing it to the constructor.".
-                    format(collection_key))
+                "Please indicate which one to use by passing it to the constructor.".format(collection_key))
 
         self._saver = savers[0]
         return savers[0]

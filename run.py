@@ -75,7 +75,7 @@ def run_training_validation_loop(estimator: tf.estimator.Estimator, flags: argpa
         ExamplesPerSecondHook(batch_size=flags.train_batch_size, every_n_steps=report_every_n_iter)
     ]
     eval_hooks = [
-        EvaluationCheckpointSaverHook(checkpoint_dir=flags.best_model_dir, tensors_to_mininimize=eval_tensors_to_monitor)
+        EvaluationCheckpointSaverHook(checkpoint_dir=flags.best_model_dir, tensors_to_minimize=eval_tensors_to_monitor)
     ]
 
     for _ in range(flags.train_epochs // flags.epochs_between_evals):
