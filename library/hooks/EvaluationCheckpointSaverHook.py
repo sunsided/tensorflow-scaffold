@@ -109,7 +109,7 @@ class EvaluationCheckpointSaverHook(tf.train.SessionRunHook):
 
     def _save(self, session, step):
         """Saves the latest checkpoint."""
-        logging.info("Evaluation metrics have improved. Saving checkpoints for %d into %s.", step, self._save_path)
+        logging.info("Saving checkpoints for %d into %s.", step, self._save_path)
 
         for l in self._listeners:
             l.before_save(session, step)
