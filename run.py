@@ -5,8 +5,8 @@ import tensorflow as tf
 import numpy as np
 
 from typing import Optional, Any, Dict
-from experiments.hooks import ExamplesPerSecondHook, EvaluationCheckpointSaverHook
-from experiments.parameters import get_project_parameters, YParams
+from library.hooks import ExamplesPerSecondHook, EvaluationCheckpointSaverHook
+from library.parameters import get_project_parameters, YParams
 from project import input_fn, model_fn, model_builder
 
 

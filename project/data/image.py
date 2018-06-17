@@ -1,7 +1,4 @@
 """Estimator inputs definitions. """
-import glob
-import os
-from argparse import Namespace
 from typing import Tuple
 import tensorflow as tf
 

@@ -6,8 +6,8 @@ import math
 import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
-from experiments.preparation.tfrecord import image_to_tfexample
-from experiments.preparation.image import get_image_bytes
+from library.preparation.tfrecord import image_to_tfexample
+from library.preparation.image import get_image_bytes
 
 
 flags = tf.app.flags

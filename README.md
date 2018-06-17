@@ -1,7 +1,17 @@
 # TensorFlow Project Scaffold
 
 This project is meant to provide a starting point for new
-TensorFlow projects.
+TensorFlow projects. It showcases
+
+- `tf.estimator.Estimator`-based training using custom
+  `input_fn` and `model_fn` functions.
+- `tf.data.Dataset` with `.list_files()` and `.from_generator()`
+   examples.
+  - Interleaved `TFRecord` input streams using `tf.data.TFRecordDataset` and 
+    `tf.contrib.data.parallel_interleave`.
+  - GPU prefetching using `tf.contrib.data.prefetch_to_device`.
+- Automatic snapshotting of parameters with the best
+  validation loss into a separate directory.
 
 Inspirations and sources:
 
@@ -16,12 +26,67 @@ Inspirations and sources:
 ## Structure of the project
 
 - `project`: project modules such as networks, input pipelines, etc.
-- `experiments`: scripts and boilerplate code
+- `library`: scripts and boilerplate code
 
 Two configuration files exist:
 
 - `project.yaml`: Serialized command-line options
 - `hyperparameters.yaml`: Model hyperparameters
+
+Here's an example `hyperparameters.yaml`, with a default hyper-parameter
+set (conveniently called `default`), and an additional set named `mobilenet`.
+Here, the `mobilenet` set inherits from `default` and overwrites
+only the default parameters with the newly defined ones.
+
+```yaml
+default: &DEFAULT
+  # batch_size: 100
+  # num_epoch: 1000
+  # optimizer: Adam
+  learning_rate: 1e-4
+  dropout_rate: 0.5
+  l2_regularization: 1e-8
+  xentropy_label_smoothing: 0.
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1e-8
+
+mobilenet:
+  <<: *DEFAULT
+  learning_rate: 1e-5
+  fine_tuning: True
+```
+
+Likewise, the `project.yaml` contains serialized command-line
+parameters:
+
+```yaml
+default: &DEFAULT
+  train_batch_size: 32
+  train_epochs: 1000
+  epochs_between_evals: 100
+  hyperparameter_file: hyperparameters.yaml
+  hyperparameter_set: default
+  model: latest
+  model_dir: out/current/checkpoints
+  best_model_dir: out/current/best
+
+gtx1080ti:
+  <<: *DEFAULT
+  train_batch_size: 512
+
+thinkpadx201t:
+  <<: *DEFAULT
+  train_batch_size: 10
+  train_epochs: 10
+  epochs_between_evals: 1
+  random_seed: 0
+```
+
+By selecting a configuration set on startup using the `--config_set` command-line
+option, best configurations can be stored and versioned easily.
+Configuration provided on the command-line overrides values defined
+in `project.yaml`, allowing for quick iteration.
 
 ## Run training
 

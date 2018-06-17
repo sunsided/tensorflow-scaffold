@@ -1,8 +1,8 @@
 from typing import Optional, Any
 import tensorflow as tf
 from tensorflow.contrib.training import HParams
-from experiments.visualization import put_kernels_on_grid
-from experiments.models import Model, HyperParameters, Output, Losses
+from library.visualization import put_kernels_on_grid
+from library.models import Model, HyperParameters, Output, Losses
 
 
 class SimpleModel(Model):
