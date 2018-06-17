@@ -151,7 +151,10 @@ def build_run_config(flags: argparse.Namespace) -> tf.estimator.RunConfig:
         config.graph_options.optimizer_options.global_jit_level = tf.OptimizerOptions.ON_1
 
     # Run configuration
-    return tf.estimator.RunConfig(save_summary_steps=200, session_config=config)
+    return tf.estimator.RunConfig(
+        save_summary_steps=flags.save_summary_steps,
+        session_config=config,
+        keep_checkpoint_max=10)
 
 
 def get_cli_args():

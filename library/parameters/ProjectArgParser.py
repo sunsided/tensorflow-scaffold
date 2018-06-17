@@ -88,6 +88,18 @@ class ProjectArgParser(argparse.ArgumentParser):
         )
 
         self.add_argument(
+            '--save_summary_steps', '-sss', type=int, default=100,
+            help='[default: %(default)s] The number of steps between summary saves.',
+            metavar='<SSS>'
+        )
+
+        self.add_argument(
+            '--keep_checkpoint_max', '-kcm', type=int, default=25,
+            help='[default: %(default)s] The number of checkpoints to keep.',
+            metavar='<KCM>'
+        )
+
+        self.add_argument(
             '--validate', action='store_true',
             help='If set, run only validation instead of training.'
         )

@@ -2,6 +2,8 @@ default: &DEFAULT
   batch_size: 32
   train_epochs: 1000
   epochs_between_evals: 100
+  save_summary_steps: 100
+  keep_checkpoint_max: 10
   hyperparameter_file: hyperparameters.yaml
   hyperparameter_set: default
   model: latest

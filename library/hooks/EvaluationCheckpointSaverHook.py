@@ -61,7 +61,6 @@ class EvaluationCheckpointSaverHook(tf.train.SessionRunHook):
     def before_run(self, run_context):
         if not self._graph_saved:
             self._graph_saved = True
-            self._saver = self._saver if self._saver is not None else tf.train.Saver(max_to_keep=5)
             # We do write graph and saver_def at the first call of before_run.
             # We cannot do this in begin, since we let other hooks to change graph and
             # add variables in begin. Graph is finalized after all begin calls.
