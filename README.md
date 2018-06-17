@@ -7,15 +7,15 @@ TensorFlow projects. It showcases
   `input_fn` and `model_fn` functions, using 
   standard [`tf.estimator.EstimatorSpec`] definitions.
   - Image files are read using [`tf.gfile.FastGFile`] for source-agnostic, lock-free file loading.
-  - Efficient JPEG decoding using [`tf.image.decode_and_crop_jpeg`].
-  - Usage of pretrained models using [`tensorflow_hub.Module`].
+  - JPEGs are decoding efficiently using [`tf.image.decode_and_crop_jpeg`].
+- Usage of pretrained models using [`tensorflow_hub.Module`].
 - [`tf.data.Dataset`] with `.list_files()` and `.from_generator()`
    examples.
   - Interleaved `TFRecord` input streams using [`tf.data.TFRecordDataset`] and 
     [`tf.contrib.data.parallel_interleave`].
   - GPU prefetching using [`tf.contrib.data.prefetch_to_device`].
 - Automatic snapshotting of parameters with the best
-  validation loss into a separate directory.
+  validation loss into a separate directory using a custom [`SessionRunHook`].
 
 [`tf.estimator.Estimator`]: https://www.tensorflow.org/api_docs/python/tf/estimator/Estimator
 [`tf.estimator.EstimatorSpec`]: https://www.tensorflow.org/api_docs/python/tf/estimator/EstimatorSpec
@@ -26,6 +26,7 @@ TensorFlow projects. It showcases
 [`tf.data.Dataset`]: https://www.tensorflow.org/api_docs/python/tf/data/Dataset
 [`tf.contrib.data.parallel_interleave`]: https://www.tensorflow.org/api_docs/python/tf/contrib/data/parallel_interleave
 [`tf.contrib.data.prefetch_to_device`]: https://www.tensorflow.org/api_docs/python/tf/contrib/data/prefetch_to_device
+[`SessionRunHook`]: https://www.tensorflow.org/api_docs/python/tf/train/SessionRunHook
 
 Inspirations and sources:
 
