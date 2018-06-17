@@ -12,6 +12,7 @@ gtx1080ti:
   <<: *DEFAULT
   train_batch_size: 64
   eval_batch_size: 128
+  epochs_between_evals: 10
 
 thinkpadx201t:
   <<: *DEFAULT
