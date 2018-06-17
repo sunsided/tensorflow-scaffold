@@ -93,10 +93,13 @@ class EvaluationCheckpointSaverHook(tf.train.SessionRunHook):
             old_value = self._metrics_to_minimize[name]
             if old_value is None:
                 self._metrics_to_minimize[name] = new_value
-                continue
+                take_snapshot = True
+                logging.info("Evaluation metric \"%s\" (%f) had no previous value; taking snapshot.", name, new_value)
+                break
             if old_value > new_value:
                 take_snapshot = True
                 self._metrics_to_minimize[name] = new_value
+                logging.info("Evaluation metric \"%s\" improved (%f <= %f); taking snapshot", name, new_value, old_value)
             else:
                 logging.info("Evaluation metric \"%s\" did not improve (%f >= %f).", name, new_value, old_value)
 
