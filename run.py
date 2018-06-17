@@ -161,8 +161,8 @@ def get_cli_args():
     # Here we joint them.
     if args.train_batch_size is None or args.train_batch_size <= 0:
         args.train_batch_size = args.batch_size
-    if args.validation_batch_size is None or args.validation_batch_size <= 0:
-        args.validation_batch_size = args.batch_size
+    if args.eval_batch_size is None or args.eval_batch_size <= 0:
+        args.eval_batch_size = args.batch_size
 
     return args
 
